@@ -14,6 +14,9 @@ public class ImagepointController {
     @RequestMapping (method = RequestMethod.GET)
     @ResponseBody
     public String getHome() {
-        return "HelloWorld";
+
+        var test = "Hello World";
+
+        return test;
     }
 }
