@@ -73,10 +73,18 @@ public class FedoraRESTConnector {
      */
     public FedoraRESTConnector() {
 
+
         Authenticator.setDefault(new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(/*TODO: change to real username*/"INVALID-USERNAME", /*TODO: change to real password*/ "INVALID-PASSWORD".toCharArray());
+
+                String user  = System.getenv("FEDORA_USER");
+                String pw = System.getenv("FEDORA_PASSWORD");
+
+                if (user.isEmpty()) user = "INVALID_USER";
+                if (pw.isEmpty()) pw = "INVALID_PW";
+
+                return new PasswordAuthentication(user, pw.toCharArray());
             }
         });
 
@@ -213,7 +221,7 @@ public class FedoraRESTConnector {
         return result;
     }
 
-    private String getImgAddressFromRels(String uuid) throws IOException {
+    public String getImgAddressFromRels(String uuid) throws IOException {
         return getImgAddressFromRels(uuid, true);
     }
 
