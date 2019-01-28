@@ -68,15 +68,20 @@ public class FedoraRESTConnector {
 
     private boolean objectDeleteLocked = true;
 
+    private static final String USER  = System.getenv("FEDORA_USER");
+    private static final String PW = System.getenv("FEDORA_PASSWORD");
+
     /**
      * Creates instance with password cookie
      */
     public FedoraRESTConnector() {
 
+
         Authenticator.setDefault(new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(/*TODO: change to real username*/"INVALID-USERNAME", /*TODO: change to real password*/ "INVALID-PASSWORD".toCharArray());
+
+                return new PasswordAuthentication(USER, PW.toCharArray());
             }
         });
 
@@ -213,7 +218,7 @@ public class FedoraRESTConnector {
         return result;
     }
 
-    private String getImgAddressFromRels(String uuid) throws IOException {
+    public String getImgAddressFromRels(String uuid) throws IOException {
         return getImgAddressFromRels(uuid, true);
     }
 
