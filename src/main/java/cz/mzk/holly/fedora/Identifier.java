@@ -4,7 +4,7 @@ package cz.mzk.holly.fedora;
  * @author Jakub Kremlacek
  */
 public enum Identifier {
-    ISSN("ssn"), SIGNATURE("sig");
+    ISSN("ssn"), SIGNATURE("sig"), BARCODE("bar");
 
     String value;
 
