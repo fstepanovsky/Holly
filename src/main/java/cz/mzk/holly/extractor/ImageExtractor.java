@@ -8,15 +8,15 @@ public class ImageExtractor {
     // ToDo: Solve boilerplate code.
     public ImageExtractor(String uuid) {
 
-        if (System.getenv("MZK_BASE").isEmpty()) {
+        if (System.getenv("BASE_PATH_MZK").isEmpty()) {
             final String mzkBase = "/mzk";
         } else {
-            final String mzkBase = System.getenv("MZK_BASE");
+            final String mzkBase = System.getenv("BASE_PATH_MZK");
         }
-        if (System.getenv("NDK_BASE").isEmpty()) {
+        if (System.getenv("BASE_PATH_NDK").isEmpty()) {
             final String ndkBase = "/ndk";
         } else {
-            final String ndkBase = System.getenv("NDK_BASE");
+            final String ndkBase = System.getenv("BASE_PATH_NDK");
         }
         // ToDo: validate uuid
         // ToDo: mark as valid if valid
@@ -24,15 +24,15 @@ public class ImageExtractor {
 
     public ImageExtractor(String[] uuid) {
 
-        if (System.getenv("MZK_BASE").isEmpty()) {
+        if (System.getenv("BASE_PATH_MZK").isEmpty()) {
             final String mzkBase = "/mzk";
         } else {
-            final String mzkBase = System.getenv("MZK_BASE");
+            final String mzkBase = System.getenv("BASE_PATH_MZK");
         }
-        if (System.getenv("NDK_BASE").isEmpty()) {
+        if (System.getenv("BASE_PATH_NDK").isEmpty()) {
             final String ndkBase = "/ndk";
         } else {
-            final String ndkBase = System.getenv("NDK_BASE");
+            final String ndkBase = System.getenv("BASE_PATH_NDK");
         }
         // ToDo: validate uuids
         // ToDo: mark as valid if valid
@@ -57,7 +57,7 @@ public class ImageExtractor {
         return "";
     }
 
-    private boolean isUuid(String uuid) {
+    private boolean hasUuidPrefix(String uuid) {
         if (uuid == null)
             return false;
 
