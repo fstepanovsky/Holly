@@ -31,38 +31,46 @@
 <form method="post" class="form-horizontal">
     <h3>Imageserver downloader</h3>
     <br/>
-        <div class="form-group">
-            <label for="uuid">UUID</label>
+    <div class="form-group">
+        <label for="uuid">UUID</label>
+        <div>
+            <input id="uuid" name="uuid" type="text" placeholder="" class="form-control input-md" data-toggle="tooltip" data-placement="right" required="" title="uuid dokumentu" th:value="${uuid}">
+        </div>
+    </div>
+
+    <label for="from">Rozsah stran</label>
+
+    <div class="form-row">
+        <div class="form-group col-md">
             <div>
-                <input id="uuid" name="uuid" type="text" placeholder="" class="form-control input-md" data-toggle="tooltip" data-placement="right" required="" title="uuid dokumentu" th:value="${uuid}">
+                <input class="input-md form-control" id="from" name="from" type="number" placeholder="od" data-toggle="tooltip" title="pro úplný rozsah ponechte prázdné" th:value="${from}">
             </div>
         </div>
 
-        <label for="from">Rozsah stran</label>
-
-        <div class="form-row">
-            <div class="form-group col-md">
-                <div>
-                    <input class="input-md form-control" id="from" name="from" type="number" placeholder="od" data-toggle="tooltip" title="pro úplný rozsah ponechte prázdné">
-                </div>
-            </div>
-
-            <div class="form-group col-md">
-                <div>
-                    <input class="input-md form-control" id="to" name="to" type="number" placeholder="do" data-toggle="tooltip" title="pro úplný rozsah ponechte prázdné">
-                </div>
-            </div>
-        </div>
-
-        <div class="form-group text-center">
-            <label for="singlebutton"></label>
+        <div class="form-group col-md">
             <div>
-                <button id="singlebutton" name="singlebutton" class="btn btn-success">Stáhnout</button>
+                <input class="input-md form-control" id="to" name="to" type="number" placeholder="do" data-toggle="tooltip" title="pro úplný rozsah ponechte prázdné" th:value="${to}">
             </div>
         </div>
+    </div>
+
+    <div class="form-group">
+        <label for="imageFormat">Formát:</label>
+        <select class="browser-default custom-select form-control" id="imageFormat" name="format">
+            <option>jpg</option>
+            <option>jp2</option>
+        </select>
+    </div>
+
+    <div class="form-group text-center">
+        <label for="singlebutton"></label>
+        <div>
+            <button id="singlebutton" name="singlebutton" class="btn btn-success">Stáhnout</button>
+        </div>
+    </div>
 </form>
 </div>
-    </div>
+</div>
 </div>
 </body>
 </html>
