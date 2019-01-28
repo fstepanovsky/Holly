@@ -13,15 +13,8 @@ public class ImageExtractor {
     private static final String mzkBasePath = System.getenv("BASE_PATH_MZK");
     private static final String ndkBasePath = System.getenv("BASE_PATH_NDK");
 
-    public ImageExtractor(String uuid) {
+    public ImageExtractor() {
 
-        // ToDo: validate uuid
-        // ToDo: mark as valid if valid
-    }
-
-    public ImageExtractor(String[] uuid) {
-        // ToDo: validate uuids
-        // ToDo: mark as valid if valid
     }
 
     public String getImagePath(String uuid) {
