@@ -68,6 +68,9 @@ public class FedoraRESTConnector {
 
     private boolean objectDeleteLocked = true;
 
+    private static final String USER  = System.getenv("FEDORA_USER");
+    private static final String PW = System.getenv("FEDORA_PASSWORD");
+
     /**
      * Creates instance with password cookie
      */
@@ -78,13 +81,7 @@ public class FedoraRESTConnector {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
 
-                String user  = System.getenv("FEDORA_USER");
-                String pw = System.getenv("FEDORA_PASSWORD");
-
-                if (user.isEmpty()) user = "INVALID_USER";
-                if (pw.isEmpty()) pw = "INVALID_PW";
-
-                return new PasswordAuthentication(user, pw.toCharArray());
+                return new PasswordAuthentication(USER, PW.toCharArray());
             }
         });
 
