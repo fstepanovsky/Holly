@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
@@ -75,6 +76,8 @@ public class ImageExtractor {
                 //TODO: process attachments
 
                 return pageUuids;
+            case "model:page":
+                return Collections.singletonList(uuid);
             default:
                 //recursive loading is unsafe - f.e.: export entire periodical
                 System.err.println("Supplied UUID does not contain pages and recursive search is not allowed");
