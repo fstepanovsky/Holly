@@ -99,7 +99,6 @@ public class ImagepointController {
             zos.closeEntry();
             // close the InputStream
             fis.close();
-            srcFile.delete();
         }
 
         zos.close();
