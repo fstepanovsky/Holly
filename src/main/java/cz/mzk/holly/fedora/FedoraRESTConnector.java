@@ -307,7 +307,7 @@ public class FedoraRESTConnector {
         return i;
     }
 
-    private String loadRELS(String uuid) throws IOException {
+    public String loadRELS(String uuid) throws IOException {
         return loadDS(FedoraDSType.RELS, uuid, true);
     }
 

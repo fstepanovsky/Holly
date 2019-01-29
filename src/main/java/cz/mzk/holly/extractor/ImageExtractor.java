@@ -1,11 +1,19 @@
 package cz.mzk.holly.extractor;
 
 import cz.mzk.holly.fedora.FedoraRESTConnector;
-
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.util.LinkedList;
+import java.util.List;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 public class ImageExtractor {
     // ToDo: Solve boilerplate code.
@@ -13,12 +21,13 @@ public class ImageExtractor {
     private static final String mzkBasePath = System.getenv("BASE_PATH_MZK");
     private static final String ndkBasePath = System.getenv("BASE_PATH_NDK");
 
+    private final FedoraRESTConnector fedora = new FedoraRESTConnector();
+
     public ImageExtractor() {
 
     }
 
     public String getImagePath(String uuid) {
-        FedoraRESTConnector fedora = new FedoraRESTConnector();
         String imageUrl;
         try {
             if (hasUuidPrefix(uuid))
@@ -32,6 +41,47 @@ public class ImageExtractor {
         }
 
         return getPhysicalPath(imageUrl);
+    }
+
+    public List<String> getPagesUuids(String uuid, Integer from, Integer to) throws IOException, ParserConfigurationException, SAXException {
+        if (!hasUuidPrefix(uuid)) {
+            throw new IllegalArgumentException("Invalid UUID: " + uuid == null ? "null" : uuid);
+        }
+
+        List<String> model = getFedoraRDFResourceFromRels(uuid, "fedora-model:hasModel");
+
+        if (model.size() != 1) {
+            throw new IllegalStateException("Could not load model from RELS-EXT for uuid: " + uuid);
+        }
+
+        switch (model.get(0)) {
+            //TODO: add all models that can contain relation "hasPage"
+            case "model:monograph":
+            case "model:periodicalitem":
+                List<String> pageUuids = getFedoraRDFResourceFromRels(uuid, "kramerius:hasPage");
+
+                //attempt to load resources if prefix is not present
+                if (pageUuids.isEmpty()) {
+                    pageUuids = getFedoraRDFResourceFromRels(uuid, "hasPage");
+                }
+
+                //filter range
+                if (from != null || to != null) {
+                    pageUuids = pageUuids.subList(
+                            from != null ? from : 0,
+                            to != null ? to : 0);
+                }
+
+                return pageUuids;
+            default:
+                if (from != null || to != null) {
+                    System.err.println("Defined range for document without pages, ignoring range");
+                }
+
+                //TODO: process children recursively
+                
+                return null;
+        }
     }
 
     private String getPhysicalPath(String imgUrl) {
@@ -81,5 +131,34 @@ public class ImageExtractor {
             return false;
 
         return uuid.startsWith("uuid:");
+    }
+
+    private static String getXMLElementText(String xml, String elementTag) {
+        return xml.substring(
+                xml.indexOf("<" + elementTag + ">") + elementTag.length() + 2,
+                xml.indexOf("</" + elementTag + ">") );
+    }
+
+    private List<String> getFedoraRDFResourceFromRels(String uuid, String elementTag) throws IOException, ParserConfigurationException, SAXException {
+        String xml = fedora.loadRELS(uuid);
+
+        DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+        Document doc = dBuilder.parse(xml);
+
+        NodeList elements = doc.getElementsByTagName(elementTag);
+
+        List<String> results = new LinkedList<>();
+
+        for (int i = 0; i < elements.getLength(); i++) {
+            Element element = (Element) elements.item(i);
+            String value = element.getAttribute("rdf:resource");
+
+            String result = value.substring("info:fedora/".length());
+
+            results.add(result);
+        }
+
+        return results;
     }
 }
