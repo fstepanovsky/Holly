@@ -72,14 +72,13 @@ public class ImageExtractor {
                             to != null ? to : 0);
                 }
 
+                //TODO: process attachments
+
                 return pageUuids;
             default:
-                if (from != null || to != null) {
-                    System.err.println("Defined range for document without pages, ignoring range");
-                }
+                //recursive loading is unsafe - f.e.: export entire periodical
+                System.err.println("Supplied UUID does not contain pages and recursive search is not allowed");
 
-                //TODO: process children recursively
-                
                 return null;
         }
     }
