@@ -51,6 +51,32 @@ public class ImageExtractor {
         return getPhysicalPath(imageUrl);
     }
 
+    public List<String> getImagesPath(String uuid) {
+        List<String> pages = new ArrayList<>();
+        try {
+            pages = getPagesUuids(uuid, this.fromPage, this.toPage);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ParserConfigurationException e) {
+            e.printStackTrace();
+        } catch (SAXException e) {
+            e.printStackTrace();
+        }
+
+        if (pages.isEmpty()) {
+            return Collections.<String>emptyList();
+        }
+        List<String>paths = new ArrayList<>();
+        for (String page : pages) {
+            String path = getImagePath(page);
+            if (page != null && !path.isEmpty()) {
+                paths.add(path);
+            }
+        }
+
+        return pages;
+    }
+
     public List<String> getPagesUuids(String uuid, Integer from, Integer to) throws IOException, ParserConfigurationException, SAXException {
         if (!hasUuidPrefix(uuid)) {
             throw new IllegalArgumentException("Invalid UUID: " + (uuid == null ? "null" : uuid));
