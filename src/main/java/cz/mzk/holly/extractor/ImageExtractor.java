@@ -46,7 +46,7 @@ public class ImageExtractor {
 
     public List<String> getPagesUuids(String uuid, Integer from, Integer to) throws IOException, ParserConfigurationException, SAXException {
         if (!hasUuidPrefix(uuid)) {
-            throw new IllegalArgumentException("Invalid UUID: " + uuid == null ? "null" : uuid);
+            throw new IllegalArgumentException("Invalid UUID: " + (uuid == null ? "null" : uuid));
         }
 
         List<String> model = getFedoraRDFResourceFromRels(uuid, "fedora-model:hasModel");
