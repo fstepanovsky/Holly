@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -19,13 +20,19 @@ import org.xml.sax.SAXException;
 public class ImageExtractor {
     // ToDo: Solve boilerplate code.
 
-    private static final String mzkBasePath = System.getenv("BASE_PATH_MZK");
-    private static final String ndkBasePath = System.getenv("BASE_PATH_NDK");
+    private static final String BASE_PATH_MZK = System.getenv("BASE_PATH_MZK");
+    private static final String BASE_PATH_NDK = System.getenv("BASE_PATH_NDK");
+    private final String parentUuid;
+    private final String format;
+    private Integer fromPage, toPage;
 
     private final FedoraRESTConnector fedora = new FedoraRESTConnector();
 
-    public ImageExtractor() {
-
+    public ImageExtractor(String uuid, Integer fromPage, Integer toPage, String format) {
+        this.fromPage = fromPage;
+        this.toPage = toPage;
+        this.parentUuid = uuid;
+        this.format = format;
     }
 
     public String getImagePath(String uuid) {
@@ -117,9 +124,9 @@ public class ImageExtractor {
                     physicalPath = path.replace("NDK", "ndk2019");
                     break;
             }
-            physicalPath = Paths.get(ndkBasePath, physicalPath).toString();
+            physicalPath = Paths.get(BASE_PATH_NDK, physicalPath).toString();
         } else {
-            physicalPath = Paths.get(mzkBasePath, path).toString();
+            physicalPath = Paths.get(BASE_PATH_MZK, path).toString();
         }
 
         if (path.contains(".tif"))
