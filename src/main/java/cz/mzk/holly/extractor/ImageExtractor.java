@@ -11,10 +11,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -23,75 +20,22 @@ public class ImageExtractor {
     // ToDo: Solve boilerplate code.
     private static final Logger logger = Logger.getLogger(ImageExtractor.class.getName());
 
-    private static final String BASE_PATH_MZK = System.getenv("BASE_PATH_MZK");
-    private static final String BASE_PATH_NDK = System.getenv("BASE_PATH_NDK");
-    private final String parentUuid;
-    private final String format;
-    private Integer fromPage, toPage;
+    private final String BASE_PATH_MZK;
+    private final String BASE_PATH_NDK;
 
     private final FedoraRESTConnector fedora = new FedoraRESTConnector();
 
-    public ImageExtractor(String uuid, Integer fromPage, Integer toPage, String format) {
-        this.fromPage = fromPage;
-        this.toPage = toPage;
-        this.parentUuid = uuid;
-        this.format = format;
-    }
-
-    /**
-     * Loads paths to images for selected uuid parent
-     *
-     * @param parentUuid uuid of parent object of the pages
-     * @param fromPage starting page number (not index)
-     * @param toPage ending page number (not index)
-     * @param format image format
-     * @return paths list
-     * @throws IOException
-     */
-    public static String[] getImages(String parentUuid, Integer fromPage, Integer toPage, String format) throws IOException {
-        var frc = new FedoraRESTConnector();
-        Document doc = null;
-
-        try {
-            doc = DocumentUtils.loadDocumentFromString(frc.loadRELS(parentUuid));
-        } catch (ParserConfigurationException | SAXException e) {
-            logger.severe(e.getMessage());
-            return new String[0];
-        }
-        var uuidList = new LinkedList<String>();
-
-        NodeList pages = doc.getElementsByTagName("kramerius:hasPage");
-
-        if (pages.getLength() == 0) {
-            logger.warning("Object does not have any pages connected to it");
-            return new String[0];
+    public ImageExtractor() {
+        if (System.getenv("BASE_PATH_MZK") == null) {
+            throw new IllegalStateException("System not configured properly, please set BASE_PATH_MZK");
         }
 
-        for (int i = 0; i < pages.getLength(); i++) {
-            //skip first pages of user selection if set
-            //i+1 is needed because fromPage is human-numbering (starting from 1, not 0)
-            if (fromPage != null && fromPage > i + 1) {
-                continue;
-            }
-
-            //end at last page of user selection if set
-            if (toPage != null && toPage < i) {
-                break;
-            }
-
-            var resourceStr = ((Element) pages.item(i)).getAttribute("rdf:resource");
-            var spl = resourceStr.split("/");
-
-            uuidList.add(spl[1]);
+        if (System.getenv("BASE_PATH_NDK") == null) {
+            throw new IllegalStateException("System not configured properly, please set BASE_PATH_NDK");
         }
 
-        var imagesList = new LinkedList<String>();
-
-        for (String uuid : uuidList) {
-            imagesList.add(frc.getImgAddressFromRels(uuid));
-        }
-
-        return imagesList.toArray(new String[imagesList.size()]);
+        BASE_PATH_MZK = System.getenv("BASE_PATH_MZK");
+        BASE_PATH_NDK = System.getenv("BASE_PATH_NDK");
     }
 
     public String getImagePath(String uuid) {
@@ -110,10 +54,16 @@ public class ImageExtractor {
         return getPhysicalPath(imageUrl);
     }
 
-    public List<String> getImagesPath(String uuid) {
+    /**
+     * Loads list of paths for a given object
+     *
+     * @param uuid parent object
+     * @return list of paths
+     */
+    public List<String> getImagePaths(String uuid, Integer fromPage, Integer toPage, String format) {
         List<String> pages = new ArrayList<>();
         try {
-            pages = getPagesUuids(uuid, this.fromPage, this.toPage);
+            pages = getPagesUuids(uuid, fromPage, toPage);
         } catch (IOException | ParserConfigurationException | SAXException e) {
             e.printStackTrace();
         }
@@ -232,9 +182,7 @@ public class ImageExtractor {
     private List<String> getFedoraRDFResourceFromRels(String uuid, String elementTag) throws IOException, ParserConfigurationException, SAXException {
         String xml = fedora.loadRELS(uuid);
 
-        DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-        Document doc = dBuilder.parse(xml);
+        var doc = DocumentUtils.loadDocumentFromString(xml);
 
         NodeList elements = doc.getElementsByTagName(elementTag);
 

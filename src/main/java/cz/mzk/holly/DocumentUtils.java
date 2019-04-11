@@ -1,9 +1,11 @@
 package cz.mzk.holly;
 
 import java.io.IOException;
+import java.io.StringReader;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 /**
@@ -23,6 +25,6 @@ public class DocumentUtils {
     public static Document loadDocumentFromString(String docStr) throws ParserConfigurationException, IOException, SAXException {
         var dbf = DocumentBuilderFactory.newInstance();
         var builder = dbf.newDocumentBuilder();
-        return builder.parse(docStr);
+        return builder.parse(new InputSource(new StringReader(docStr)));
     }
 }

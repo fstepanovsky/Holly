@@ -64,9 +64,10 @@ public class ImagepointController {
             return null;
         }
 
-        var imagePaths = ImageExtractor.getImages(uuid, fromPage, toPage, format);
+        var ie = new ImageExtractor();
+        var imagePaths = ie.getImagePaths(uuid, fromPage, toPage, format);
 
-        File archive = FileUtils.createZipArchive(imagePaths);
+        File archive = FileUtils.createZipArchive(imagePaths.toArray(new String[imagePaths.size()]));
 
         return prepareFileResponse(request, archive);
     }
