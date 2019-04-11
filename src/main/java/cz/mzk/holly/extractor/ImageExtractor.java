@@ -79,7 +79,7 @@ public class ImageExtractor {
             }
         }
 
-        return pages;
+        return paths;
     }
 
     public List<String> getPagesUuids(String uuid, Integer from, Integer to) throws IOException, ParserConfigurationException, SAXException {
