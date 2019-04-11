@@ -1,6 +1,7 @@
 package cz.mzk.holly.controller;
 
 import cz.mzk.holly.FileUtils;
+import cz.mzk.holly.extractor.ImageExtractor;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -63,9 +64,11 @@ public class ImagepointController {
             return null;
         }
 
-        //TODO
+        var imagePaths = ImageExtractor.getImages(uuid, fromPage, toPage, format);
 
-        return ResponseEntity.ok().build();
+        File archive = FileUtils.createZipArchive(imagePaths);
+
+        return prepareFileResponse(request, archive);
     }
 
     private ResponseEntity<Resource> prepareFileResponse(HttpServletRequest request, File responseFile) throws MalformedURLException {
