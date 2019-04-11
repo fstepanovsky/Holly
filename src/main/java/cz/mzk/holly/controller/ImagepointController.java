@@ -1,16 +1,14 @@
 package cz.mzk.holly.controller;
 
+import cz.mzk.holly.FileUtils;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Logger;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -40,6 +38,19 @@ public class ImagepointController {
         return "index";
     }
 
+    @GetMapping("/demo")
+    public ResponseEntity<Resource> demo(HttpServletRequest request) throws IOException {
+
+        File test = File.createTempFile("text", ".txt");
+        FileWriter fw = new FileWriter(test);
+        fw.write("lorem ipsum");
+        fw.close();
+
+        File out = FileUtils.createZipArchive(new String[] {test.getAbsolutePath()});
+
+        return prepareFileResponse(request, out);
+    }
+
     @PostMapping("/")
     public ResponseEntity<Resource> download(
             @RequestParam(name="uuid") String uuid,
@@ -52,14 +63,13 @@ public class ImagepointController {
             return null;
         }
 
-        File test = File.createTempFile("text", ".txt");
-        FileWriter fw = new FileWriter(test);
-        fw.write("lorem ipsum");
-        fw.close();
+        //TODO
 
-        File out = createZipArchive(new String[] {test.getAbsolutePath()});
+        return ResponseEntity.ok().build();
+    }
 
-        Resource resource = new UrlResource(out.toURI());
+    private ResponseEntity<Resource> prepareFileResponse(HttpServletRequest request, File responseFile) throws MalformedURLException {
+        Resource resource = new UrlResource(responseFile.toURI());
 
         String contentType = null;
         try {
@@ -79,30 +89,4 @@ public class ImagepointController {
                 .body(resource);
     }
 
-    private File createZipArchive(String[] srcFiles) throws IOException {
-        File zipFile = File.createTempFile("download", ".zip");
-
-        FileOutputStream fos = new FileOutputStream(zipFile);
-        ZipOutputStream zos = new ZipOutputStream(fos);
-
-        byte[] buffer = new byte[1024];
-
-        for (int i=0; i < srcFiles.length; i++) {
-            File srcFile = new File(srcFiles[i]);
-            FileInputStream fis = new FileInputStream(srcFile);
-            // begin writing a new ZIP entry, positions the stream to the start of the entry data
-            zos.putNextEntry(new ZipEntry(srcFile.getName()));
-            int length;
-            while ((length = fis.read(buffer)) > 0) {
-                zos.write(buffer, 0, length);
-            }
-            zos.closeEntry();
-            // close the InputStream
-            fis.close();
-        }
-
-        zos.close();
-
-        return zipFile;
-    }
 }

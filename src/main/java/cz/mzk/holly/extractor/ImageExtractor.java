@@ -55,11 +55,7 @@ public class ImageExtractor {
         List<String> pages = new ArrayList<>();
         try {
             pages = getPagesUuids(uuid, this.fromPage, this.toPage);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ParserConfigurationException e) {
-            e.printStackTrace();
-        } catch (SAXException e) {
+        } catch (IOException | ParserConfigurationException | SAXException e) {
             e.printStackTrace();
         }
 
