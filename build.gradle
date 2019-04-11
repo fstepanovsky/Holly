@@ -23,6 +23,12 @@ repositories {
     mavenCentral()
 }
 
+bootWar {
+    dependencies {
+        providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+    }
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-jersey'
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -31,6 +37,4 @@ dependencies {
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
     
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-
-    //providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
 }
