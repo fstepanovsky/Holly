@@ -12,6 +12,8 @@ import java.net.HttpURLConnection;
 import java.net.PasswordAuthentication;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -168,7 +170,7 @@ public class FedoraRESTConnector {
             yearDir = yearDir.replaceAll(" ", "");
         }
 
-        FileUtils.writeStringToFile(tempContent, mods, false);
+        FileUtils.writeStringToFile(tempContent, mods, Charset.defaultCharset());
 
         String signature = Utils.getSignatureFromRootObject(tempContent);
 
@@ -181,6 +183,10 @@ public class FedoraRESTConnector {
 
         if (signature.equals("nezjištěna") || signature.startsWith("PE")) {
             String issn = Utils.getISSNFromRootObject(tempContent);
+
+            if (issn == null) {
+                throw new IllegalStateException("Could not load ISSN");
+            }
 
             if (issn.equals("Estetika")) {
                 return new String[1];
@@ -222,7 +228,7 @@ public class FedoraRESTConnector {
         return getImgAddressFromRels(uuid, true);
     }
 
-    private String getImgAddressFromRels(String uuid, boolean existCheck) throws IOException {
+    public String getImgAddressFromRels(String uuid, boolean existCheck) throws IOException {
         return getImgAddressFromRels(uuid, existCheck, false);
     }
 
@@ -272,7 +278,7 @@ public class FedoraRESTConnector {
             connection.setDoOutput(true);
 
             OutputStream os = connection.getOutputStream();
-            OutputStreamWriter osw = new OutputStreamWriter(os, "UTF-8");
+            OutputStreamWriter osw = new OutputStreamWriter(os, StandardCharsets.UTF_8);
             osw.write(requestBody);
             osw.flush();
             osw.close();
@@ -321,9 +327,7 @@ public class FedoraRESTConnector {
         String encoding = con.getContentEncoding();
         encoding = encoding == null ? "UTF-8" : encoding;
 
-        String response = IOUtils.toString(in, encoding);
-
-        return response;
+        return IOUtils.toString(in, encoding);
     }
 
     public InputStream loadDSIS(FedoraDSType type, String uuid, boolean content) throws IOException {
@@ -369,9 +373,7 @@ public class FedoraRESTConnector {
         String encoding = con.getContentEncoding();
         encoding = encoding == null ? "UTF-8" : encoding;
 
-        String response = IOUtils.toString(in, encoding);
-
-        return response;
+        return IOUtils.toString(in, encoding);
     }
 
     public String getMods(String uuid) throws IOException {

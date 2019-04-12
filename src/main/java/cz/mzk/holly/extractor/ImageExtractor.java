@@ -48,14 +48,16 @@ public class ImageExtractor {
 
         BASE_PATH_MZK = System.getenv("BASE_PATH_MZK");
         BASE_PATH_NDK = System.getenv("BASE_PATH_NDK");
-        PACK_PATH = new File(System.getenv("PACK_PATH")).toPath();
+
+        PACK_PATH = new File(System.getenv("BATCH_PATH")).toPath();
     }
 
     public String getImagePath(String uuid) {
         String imageUrl;
         try {
             if (hasUuidPrefix(uuid))
-                imageUrl = fedora.getImgAddressFromRels(uuid);
+                //cannot check existance
+                imageUrl = fedora.getImgAddressFromRels(uuid, false);
             else
                 return "";
 
@@ -73,12 +75,13 @@ public class ImageExtractor {
      * @param uuid parent object
      * @return list of paths
      */
-    public List<String> getImagePaths(String uuid, Integer fromPage, Integer toPage, String format) {
+    public List<String> getImagePaths(String uuid, Integer fromPage, Integer toPage) {
         List<String> pages = new ArrayList<>();
         try {
             pages = getPagesUuids(uuid, fromPage, toPage);
         } catch (IOException | ParserConfigurationException | SAXException e) {
-            e.printStackTrace();
+            logger.severe(e.getMessage());
+            return null;
         }
 
         if (pages.isEmpty()) {
@@ -243,23 +246,38 @@ public class ImageExtractor {
             var es = Executors.newFixedThreadPool(4);
             var map = new ConcurrentHashMap<String, List<String>>();
 
-            if (uuidListStr == null || uuidListStr.isEmpty()) {
-                return;
+            try {
+                if (uuidListStr == null || uuidListStr.isEmpty()) {
+                    logger.info("No uuid set in the list");
+                    return;
+                }
+
+                if (!uuidListStr.contains("\n")) {
+                    logger.info("List does not contain single EOL sign");
+                }
+
+                String[] uuids = uuidListStr.split("\n");
+
+                for (String uuid : uuids) {
+                    if (!hasUuidPrefix(uuid)) {
+                        throw new IllegalArgumentException("Invalid uuid: " + uuid);
+                    }
+
+                    es.submit(new TitleProcessor(uuid, map));
+                }
+            } finally {
+                es.shutdown();
             }
-
-            String[] uuids = uuidListStr.split("\n");
-
-            for (String uuid : uuids) {
-                es.submit(new TitleProcessor(uuid, format, map));
-            }
-
-            es.shutdown();
 
             try {
-                es.awaitTermination(15, TimeUnit.SECONDS);
+                es.awaitTermination(60, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 logger.severe(e.getMessage());
                 return;
+            }
+
+            if (map.isEmpty()) {
+                logger.warning("No images found.");
             }
 
             //map ready
@@ -274,18 +292,16 @@ public class ImageExtractor {
 
     class TitleProcessor implements Runnable {
         private String uuid;
-        private String format;
         private Map<String, List<String>> map;
 
-        public TitleProcessor(String uuid, String format, Map<String, List<String>> map) {
+        public TitleProcessor(String uuid, Map<String, List<String>> map) {
             this.uuid = uuid;
-            this.format = format;
             this.map = map;
         }
 
         @Override
         public void run() {
-            var imagePaths = getImagePaths(uuid, null, null, format);
+            var imagePaths = getImagePaths(uuid, null, null);
 
             map.put(uuid, imagePaths);
         }

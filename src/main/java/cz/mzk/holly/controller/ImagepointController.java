@@ -87,7 +87,7 @@ public class ImagepointController {
         }
 
         var ie = new ImageExtractor();
-        var imagePaths = ie.getImagePaths(uuid, fromPage, toPage, format);
+        var imagePaths = ie.getImagePaths(uuid, fromPage, toPage);
 
         File archive = FileUtils.createZipArchive(imagePaths.toArray(new String[imagePaths.size()]));
 
