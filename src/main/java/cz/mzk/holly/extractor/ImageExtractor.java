@@ -1,15 +1,22 @@
 package cz.mzk.holly.extractor;
 
 import cz.mzk.holly.DocumentUtils;
+import cz.mzk.holly.FileUtils;
 import cz.mzk.holly.fedora.FedoraRESTConnector;
+import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.Element;
@@ -22,6 +29,7 @@ public class ImageExtractor {
 
     private final String BASE_PATH_MZK;
     private final String BASE_PATH_NDK;
+    private final Path PACK_PATH;
 
     private final FedoraRESTConnector fedora = new FedoraRESTConnector();
 
@@ -34,8 +42,13 @@ public class ImageExtractor {
             throw new IllegalStateException("System not configured properly, please set BASE_PATH_NDK");
         }
 
+        if (System.getenv("PACK_PATH") == null) {
+            throw new IllegalStateException(("System not configured properly, please set PACK_PATH"));
+        }
+
         BASE_PATH_MZK = System.getenv("BASE_PATH_MZK");
         BASE_PATH_NDK = System.getenv("BASE_PATH_NDK");
+        PACK_PATH = new File(System.getenv("PACK_PATH")).toPath();
     }
 
     public String getImagePath(String uuid) {
@@ -198,5 +211,79 @@ public class ImageExtractor {
         }
 
         return results;
+    }
+
+    public void pack(String name, String uuidListStr, String format) {
+        if (uuidListStr == null || uuidListStr.isEmpty()) {
+            return;
+        }
+
+        new Thread(new Packer(PACK_PATH, name, uuidListStr, format)).run();
+    }
+
+    class Packer implements Runnable {
+        private Path path;
+        private String name;
+        private String uuidListStr;
+        private String format;
+
+        public Packer(Path path, String name, String uuidListStr, String format) {
+            this.path = path;
+            this.name = name;
+            this.uuidListStr = uuidListStr;
+            this.format = format;
+        }
+
+        @Override
+        public void run() {
+            var es = Executors.newFixedThreadPool(4);
+            var map = new ConcurrentHashMap<String, List<String>>();
+
+            if (uuidListStr == null || uuidListStr.isEmpty()) {
+                return;
+            }
+
+            String[] uuids = uuidListStr.split("\n");
+
+            for (String uuid : uuids) {
+                es.submit(new TitleProcessor(uuid, format, map));
+            }
+
+            es.shutdown();
+
+            try {
+                es.awaitTermination(15, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                logger.severe(e.getMessage());
+                return;
+            }
+
+            //map ready
+            try {
+                FileUtils.createZipArchive(map);
+            } catch (IOException e) {
+                logger.severe(e.getMessage());
+                return;
+            }
+        }
+    }
+
+    class TitleProcessor implements Runnable {
+        private String uuid;
+        private String format;
+        private Map<String, List<String>> map;
+
+        public TitleProcessor(String uuid, String format, Map<String, List<String>> map) {
+            this.uuid = uuid;
+            this.format = format;
+            this.map = map;
+        }
+
+        @Override
+        public void run() {
+            var imagePaths = getImagePaths(uuid, null, null, format);
+
+            map.put(uuid, imagePaths);
+        }
     }
 }

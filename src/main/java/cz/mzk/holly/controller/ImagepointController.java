@@ -52,12 +52,29 @@ public class ImagepointController {
         return prepareFileResponse(request, out);
     }
 
+    @PostMapping("/pack")
+    public String pack(
+            @RequestParam(name="uuidList") String uuidList,
+            @RequestParam(name="name") String name,
+            @RequestParam(name="format", defaultValue = "jp2") String format,
+            Model model) {
+        if (!ACCEPTED_FORMATS_SET.contains(format)) {
+            return null;
+        }
+
+        var ie = new ImageExtractor();
+
+        ie.pack(name, uuidList, format);
+
+        return "index";
+    }
+
     @PostMapping("/")
-    public ResponseEntity<Resource> download(
+    public ResponseEntity<Resource> downloadSingle(
             @RequestParam(name="uuid") String uuid,
             @RequestParam(name="from", required = false) Integer fromPage,
             @RequestParam(name="to", required = false) Integer toPage,
-            @RequestParam(name="format", defaultValue = "jpg") String format,
+            @RequestParam(name="format", defaultValue = "jp2") String format,
             HttpServletRequest request) throws IOException {
 
         if (!format.isEmpty() && !ACCEPTED_FORMATS_SET.contains(format)) {
