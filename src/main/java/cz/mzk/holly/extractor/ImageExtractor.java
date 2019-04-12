@@ -112,6 +112,7 @@ public class ImageExtractor {
         switch (model.get(0)) {
             //TODO: add all models that can contain relation "hasPage"
             case "model:monograph":
+            case "model:map":
             case "model:periodicalitem":
                 List<String> pageUuids = getFedoraRDFResourceFromRels(uuid, "kramerius:hasPage");
 
@@ -134,6 +135,7 @@ public class ImageExtractor {
                 return Collections.singletonList(uuid);
             default:
                 //recursive loading is unsafe - f.e.: export entire periodical
+                //JK: recursive search is safe, blocking should be done when pages are countable, e.g. 1000 page limit
                 System.err.println("Supplied UUID does not contain pages and recursive search is not allowed");
 
                 return null;
