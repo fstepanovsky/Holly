@@ -27,6 +27,8 @@ public class ImageExtractor {
     // ToDo: Solve boilerplate code.
     private static final Logger logger = Logger.getLogger(ImageExtractor.class.getName());
 
+    private static final boolean DEBUG = false;
+
     private final String BASE_PATH_MZK;
     private final String BASE_PATH_NDK;
     private final Path PACK_PATH;
@@ -34,6 +36,15 @@ public class ImageExtractor {
     private final FedoraRESTConnector fedora = new FedoraRESTConnector();
 
     public ImageExtractor() {
+        if (DEBUG) {
+            BASE_PATH_MZK = "test";
+            BASE_PATH_NDK = "test";
+
+            PACK_PATH = new File("test").toPath();
+
+            return;
+        }
+
         if (System.getenv("BASE_PATH_MZK") == null) {
             throw new IllegalStateException("System not configured properly, please set BASE_PATH_MZK");
         }
@@ -50,6 +61,12 @@ public class ImageExtractor {
         BASE_PATH_NDK = System.getenv("BASE_PATH_NDK");
 
         PACK_PATH = new File(System.getenv("BATCH_PATH")).toPath();
+    }
+
+    public ImageExtractor(String mzk, String ndk, String packPath) {
+        BASE_PATH_MZK = mzk;
+        BASE_PATH_NDK = ndk;
+        PACK_PATH = new File(packPath).toPath();
     }
 
     public String getImagePath(String uuid) {
@@ -226,7 +243,7 @@ public class ImageExtractor {
         File zipFile = PACK_PATH.resolve(name + (name.toLowerCase().endsWith(".zip") ? "" : ".zip")).toFile();
 
         if (zipFile.exists()) {
-            throw new IllegalArgumentException("File: " + name + "already exists");
+            throw new IllegalArgumentException("File: " + name + " already exists");
         }
 
         new Thread(new Packer(zipFile, uuidListStr, format)).run();
@@ -261,6 +278,9 @@ public class ImageExtractor {
                 String[] uuids = uuidListStr.split("\n");
 
                 for (String uuid : uuids) {
+                    //strip whitespaces
+                    uuid = uuid.replaceAll("\\s+","");
+
                     if (!hasUuidPrefix(uuid)) {
                         throw new IllegalArgumentException("Invalid uuid: " + uuid);
                     }
