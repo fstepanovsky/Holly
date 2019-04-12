@@ -39,6 +39,11 @@ public class ImagepointController {
         return "index";
     }
 
+    @GetMapping("/batch")
+    public String batchGet(Model model) {
+        return "batch";
+    }
+
     @GetMapping("/demo")
     public ResponseEntity<Resource> demo(HttpServletRequest request) throws IOException {
 
