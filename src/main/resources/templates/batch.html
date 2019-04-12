@@ -14,6 +14,13 @@
         </div>
 
         <div class="form-group">
+            <label for="batchName">Jméno dávky</label>
+            <div>
+                <input id="batchName" name="batchName" type="text" placeholder="" class="form-control input-md" data-toggle="tooltip" data-placement="right" required="" title="jméno dávky pod kterou bude uložena na vyzvednutí" th:value="${batchName}">
+            </div>
+        </div>
+
+        <div class="form-group">
             <label for="imageFormat">Formát:</label>
             <select class="browser-default custom-select form-control" id="imageFormat" name="format">
                 <option>jpg</option>

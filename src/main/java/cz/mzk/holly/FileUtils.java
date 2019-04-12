@@ -40,9 +40,7 @@ public class FileUtils {
         return zipFile;
     }
 
-    public static File createZipArchive(Map<String, List<String>> srcFiles) throws IOException {
-        File zipFile = File.createTempFile("download", ".zip");
-
+    public static File createZipArchive(File zipFile, Map<String, List<String>> srcFiles) throws IOException {
         FileOutputStream fos = new FileOutputStream(zipFile);
         ZipOutputStream zos = new ZipOutputStream(fos);
 

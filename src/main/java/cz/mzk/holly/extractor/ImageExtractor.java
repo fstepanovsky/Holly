@@ -42,7 +42,7 @@ public class ImageExtractor {
             throw new IllegalStateException("System not configured properly, please set BASE_PATH_NDK");
         }
 
-        if (System.getenv("PACK_PATH") == null) {
+        if (System.getenv("BATCH_PATH") == null) {
             throw new IllegalStateException(("System not configured properly, please set PACK_PATH"));
         }
 
@@ -213,23 +213,27 @@ public class ImageExtractor {
         return results;
     }
 
-    public void pack(String name, String uuidListStr, String format) {
+    public void batch(String name, String uuidListStr, String format) {
         if (uuidListStr == null || uuidListStr.isEmpty()) {
             return;
         }
 
-        new Thread(new Packer(PACK_PATH, name, uuidListStr, format)).run();
+        File zipFile = PACK_PATH.resolve(name + (name.toLowerCase().endsWith(".zip") ? "" : ".zip")).toFile();
+
+        if (zipFile.exists()) {
+            throw new IllegalArgumentException("File: " + name + "already exists");
+        }
+
+        new Thread(new Packer(zipFile, uuidListStr, format)).run();
     }
 
     class Packer implements Runnable {
-        private Path path;
-        private String name;
+        private File zipFile;
         private String uuidListStr;
         private String format;
 
-        public Packer(Path path, String name, String uuidListStr, String format) {
-            this.path = path;
-            this.name = name;
+        public Packer(File zipFile, String uuidListStr, String format) {
+            this.zipFile = zipFile;
             this.uuidListStr = uuidListStr;
             this.format = format;
         }
@@ -260,7 +264,7 @@ public class ImageExtractor {
 
             //map ready
             try {
-                FileUtils.createZipArchive(map);
+                FileUtils.createZipArchive(zipFile, map);
             } catch (IOException e) {
                 logger.severe(e.getMessage());
                 return;

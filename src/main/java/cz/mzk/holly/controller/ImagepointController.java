@@ -57,10 +57,10 @@ public class ImagepointController {
         return prepareFileResponse(request, out);
     }
 
-    @PostMapping("/pack")
+    @PostMapping("/batch")
     public String pack(
             @RequestParam(name="uuidList") String uuidList,
-            @RequestParam(name="name") String name,
+            @RequestParam(name="batchName") String batchName,
             @RequestParam(name="format", defaultValue = "jp2") String format,
             Model model) {
         if (!ACCEPTED_FORMATS_SET.contains(format)) {
@@ -69,9 +69,9 @@ public class ImagepointController {
 
         var ie = new ImageExtractor();
 
-        ie.pack(name, uuidList, format);
+        ie.batch(batchName, uuidList, format);
 
-        return "index";
+        return "batch";
     }
 
     @PostMapping("/")
