@@ -29,7 +29,7 @@
                     </form>
                 </td>
                 <td>
-                    <form method="delete">
+                    <form action="/delete" method="post">
                         <input type="hidden" name="name" th:value="${batch.name}">
                         <button type="submit" class="btn btn-secondary">Smazat</button>
                     </form>

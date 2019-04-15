@@ -317,6 +317,7 @@ public class ImageExtractor {
         var batchFile = PACK_PATH.resolve(name).toFile();
 
         if (!batchFile.exists()) {
+            logger.info("File: " + name + " does not exist.");
             return;
         }
 

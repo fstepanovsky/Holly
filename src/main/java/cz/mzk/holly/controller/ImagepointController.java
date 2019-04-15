@@ -22,6 +22,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.view.RedirectView;
 
 /**
  * @author Jakub Kremlacek
@@ -104,6 +105,15 @@ public class ImagepointController {
         }
 
         return prepareFileResponse(request, zipFile);
+    }
+
+    @PostMapping("/delete")
+    public RedirectView deleteBatch(
+            @RequestParam(name = "name") String name
+    ) {
+        new ImageExtractor().deleteBatchFile(name);
+
+        return new RedirectView("batchList");
     }
 
     @GetMapping("/demo")
