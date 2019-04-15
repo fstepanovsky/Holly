@@ -41,6 +41,8 @@ public class ImageExtractor {
 
     public ImageExtractor() {
         if (DEBUG) {
+            logger.severe("Running in DEBUG!");
+
             BASE_PATH_MZK = "test";
             BASE_PATH_NDK = "test";
 
@@ -135,7 +137,7 @@ public class ImageExtractor {
      * @return list of paths
      */
     public List<String> getImagePaths(String uuid, Integer fromPage, Integer toPage) {
-        List<String> pages = new ArrayList<>();
+        List<String> pages;
         try {
             pages = getPagesUuids(uuid, fromPage, toPage);
         } catch (IOException | ParserConfigurationException | SAXException e) {
@@ -144,7 +146,7 @@ public class ImageExtractor {
         }
 
         if (pages.isEmpty()) {
-            return Collections.<String>emptyList();
+            return Collections.emptyList();
         }
         List<String>paths = new ArrayList<>();
         for (String page : pages) {
@@ -165,7 +167,11 @@ public class ImageExtractor {
         List<String> model = getFedoraRDFResourceFromRels(uuid, "fedora-model:hasModel");
 
         if (model.size() != 1) {
-            throw new IllegalStateException("Could not load model from RELS-EXT for uuid: " + uuid);
+            model = getFedoraRDFResourceFromRels(uuid, "hasModel");
+
+            if (model.size() != 1) {
+                throw new IllegalStateException("Could not load model from RELS-EXT for uuid: " + uuid);
+            }
         }
 
         switch (model.get(0)) {
@@ -286,13 +292,15 @@ public class ImageExtractor {
             return;
         }
 
+        //TODO .txt files with prefix
+
         File zipFile = PACK_PATH.resolve(name + (name.toLowerCase().endsWith(".zip") ? "" : ".zip")).toFile();
 
         if (zipFile.exists()) {
             throw new IllegalArgumentException("File: " + name + " already exists");
         }
 
-        new Thread(new Packer(zipFile, uuidListStr, format, fromPage, toPage)).run();
+        new Thread(new Packer(zipFile, uuidListStr, format, fromPage, toPage)).start();
     }
 
     /**
