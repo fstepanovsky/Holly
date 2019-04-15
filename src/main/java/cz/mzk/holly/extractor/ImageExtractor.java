@@ -278,6 +278,10 @@ public class ImageExtractor {
     }
 
     public void batch(String name, String uuidListStr, String format) {
+        batch(name, uuidListStr, format, null, null);
+    }
+
+    public void batch(String name, String uuidListStr, String format, Integer fromPage, Integer toPage) {
         if (uuidListStr == null || uuidListStr.isEmpty()) {
             return;
         }
@@ -288,7 +292,7 @@ public class ImageExtractor {
             throw new IllegalArgumentException("File: " + name + " already exists");
         }
 
-        new Thread(new Packer(zipFile, uuidListStr, format)).run();
+        new Thread(new Packer(zipFile, uuidListStr, format, fromPage, toPage)).run();
     }
 
     /**
@@ -341,12 +345,16 @@ public class ImageExtractor {
     class Packer implements Runnable {
         private File zipFile;
         private String uuidListStr;
+        private Integer fromPage;
+        private Integer toPage;
         private String format;
 
-        public Packer(File zipFile, String uuidListStr, String format) {
+        public Packer(File zipFile, String uuidListStr, String format, Integer fromPage, Integer toPage) {
             this.zipFile = zipFile;
             this.uuidListStr = uuidListStr;
             this.format = format;
+            this.fromPage = fromPage;
+            this.toPage = toPage;
         }
 
         @Override
@@ -377,7 +385,7 @@ public class ImageExtractor {
                         return;
                     }
 
-                    es.submit(new TitleProcessor(uuid, map));
+                    es.submit(new TitleProcessor(uuid, map, fromPage, toPage));
                 }
             } finally {
                 es.shutdown();
@@ -410,15 +418,19 @@ public class ImageExtractor {
     class TitleProcessor implements Runnable {
         private String uuid;
         private Map<String, List<String>> map;
+        private Integer fromPage;
+        private Integer toPage;
 
-        public TitleProcessor(String uuid, Map<String, List<String>> map) {
+        public TitleProcessor(String uuid, Map<String, List<String>> map, Integer fromPage, Integer toPage) {
             this.uuid = uuid;
             this.map = map;
+            this.fromPage = fromPage;
+            this.toPage = toPage;
         }
 
         @Override
         public void run() {
-            var imagePaths = getImagePaths(uuid, null, null);
+            var imagePaths = getImagePaths(uuid, fromPage, toPage);
 
             map.put(uuid, imagePaths);
         }

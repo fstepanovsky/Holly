@@ -42,23 +42,23 @@ public class ImagepointController {
     }
 
     @PostMapping("/")
-    public ResponseEntity<Resource> downloadSingle(
+    public String downloadSingle(
             @RequestParam(name = "uuid") String uuid,
             @RequestParam(name = "from", required = false) Integer fromPage,
             @RequestParam(name = "to", required = false) Integer toPage,
+            @RequestParam(name = "batchName") String batchName,
             @RequestParam(name = "format", defaultValue = "jp2") String format,
-            HttpServletRequest request) throws IOException {
+            HttpServletRequest request) {
 
         if (!format.isEmpty() && !ACCEPTED_FORMATS_SET.contains(format)) {
             return null;
         }
 
         var ie = new ImageExtractor();
-        var imagePaths = ie.getImagePaths(uuid, fromPage, toPage);
 
-        File archive = FileUtils.createZipArchive(imagePaths.toArray(new String[imagePaths.size()]));
+        ie.batch(batchName, uuid, format, fromPage, toPage);
 
-        return prepareFileResponse(request, archive);
+        return "index";
     }
 
     @GetMapping("/batch")
