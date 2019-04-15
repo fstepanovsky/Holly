@@ -4,7 +4,9 @@ import cz.mzk.holly.DocumentUtils;
 import cz.mzk.holly.FileUtils;
 import cz.mzk.holly.fedora.FedoraRESTConnector;
 import cz.mzk.holly.model.Batch;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -324,6 +326,18 @@ public class ImageExtractor {
         batchFile.delete();
     }
 
+    private void createReportFile(String name, String msg) {
+        var file = PACK_PATH.resolve(name + ".txt").toFile();
+        FileWriter fw = null;
+        try {
+            try (var writer = new BufferedWriter(new FileWriter(file, false))) {
+                writer.append(msg + "\n");
+            }
+        } catch (IOException e) {
+            logger.severe("Could not write error report file.");
+        }
+    }
+
     class Packer implements Runnable {
         private File zipFile;
         private String uuidListStr;
@@ -343,6 +357,7 @@ public class ImageExtractor {
             try {
                 if (uuidListStr == null || uuidListStr.isEmpty()) {
                     logger.info("No uuid set in the list");
+                    createReportFile(zipFile.getName(), "No uuid set in the list.");
                     return;
                 }
 
@@ -357,7 +372,9 @@ public class ImageExtractor {
                     uuid = uuid.replaceAll("\\s+","");
 
                     if (!hasUuidPrefix(uuid)) {
-                        throw new IllegalArgumentException("Invalid uuid: " + uuid);
+                        createReportFile(zipFile.getName(), "Invalid uuid requested.");
+                        logger.warning("Invalid uuid: " + uuid);
+                        return;
                     }
 
                     es.submit(new TitleProcessor(uuid, map));
@@ -375,6 +392,8 @@ public class ImageExtractor {
 
             if (map.isEmpty()) {
                 logger.warning("No images found.");
+                createReportFile(zipFile.getName(), "No images found.");
+                return;
             }
 
             //map ready
@@ -382,6 +401,7 @@ public class ImageExtractor {
                 FileUtils.createZipArchive(zipFile, map);
             } catch (IOException e) {
                 logger.severe(e.getMessage());
+                createReportFile(zipFile.getName(), "Could not create zip archive.");
                 return;
             }
         }
