@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -41,10 +42,10 @@ public class ImagepointController {
 
     @PostMapping("/")
     public ResponseEntity<Resource> downloadSingle(
-            @RequestParam(name="uuid") String uuid,
-            @RequestParam(name="from", required = false) Integer fromPage,
-            @RequestParam(name="to", required = false) Integer toPage,
-            @RequestParam(name="format", defaultValue = "jp2") String format,
+            @RequestParam(name = "uuid") String uuid,
+            @RequestParam(name = "from", required = false) Integer fromPage,
+            @RequestParam(name = "to", required = false) Integer toPage,
+            @RequestParam(name = "format", defaultValue = "jp2") String format,
             HttpServletRequest request) throws IOException {
 
         if (!format.isEmpty() && !ACCEPTED_FORMATS_SET.contains(format)) {
@@ -66,9 +67,9 @@ public class ImagepointController {
 
     @PostMapping("/batch")
     public String pack(
-            @RequestParam(name="uuidList") String uuidList,
-            @RequestParam(name="batchName") String batchName,
-            @RequestParam(name="format", defaultValue = "jp2") String format,
+            @RequestParam(name = "uuidList") String uuidList,
+            @RequestParam(name = "batchName") String batchName,
+            @RequestParam(name = "format", defaultValue = "jp2") String format,
             Model model) {
         if (!ACCEPTED_FORMATS_SET.contains(format)) {
             return null;
@@ -85,6 +86,24 @@ public class ImagepointController {
     public String batchList(Model model) {
         model.addAttribute("batchList", new ImageExtractor().listBatches());
         return "batch/list";
+    }
+
+    @PostMapping("/batchList")
+    public ResponseEntity<Resource> downloadBatch(
+            @RequestParam(name = "name") String name,
+            HttpServletRequest request
+    ) throws MalformedURLException {
+        if (name == null || name.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        var zipFile = new ImageExtractor().getBatchFile(name);
+
+        if (zipFile == null) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        return prepareFileResponse(request, zipFile);
     }
 
     @GetMapping("/demo")

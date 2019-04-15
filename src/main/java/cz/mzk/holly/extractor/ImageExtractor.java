@@ -289,6 +289,40 @@ public class ImageExtractor {
         new Thread(new Packer(zipFile, uuidListStr, format)).run();
     }
 
+    /**
+     * Acquires batch file from storage if exists otherwise returns null.
+     *
+     * @param name name of the batch file
+     * @return file object of the specified file name, otherwise null
+     */
+    public File getBatchFile(String name) {
+        var batchFile = PACK_PATH.resolve(name).toFile();
+
+        if (!batchFile.exists()) {
+            return null;
+        } else {
+            return batchFile;
+        }
+    }
+
+    /**
+     * Removes batch file with specified name
+     *
+     * @param name name of the batch file to be removed
+     */
+    public void deleteBatchFile(String name) {
+        //safecheck
+        name = name.replaceAll("/", "");
+
+        var batchFile = PACK_PATH.resolve(name).toFile();
+
+        if (!batchFile.exists()) {
+            return;
+        }
+
+        batchFile.delete();
+    }
+
     class Packer implements Runnable {
         private File zipFile;
         private String uuidListStr;
