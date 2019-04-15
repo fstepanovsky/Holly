@@ -39,41 +39,6 @@ public class ImagepointController {
         return "index";
     }
 
-    @GetMapping("/batch")
-    public String batchGet(Model model) {
-        return "batch";
-    }
-
-    @GetMapping("/demo")
-    public ResponseEntity<Resource> demo(HttpServletRequest request) throws IOException {
-
-        File test = File.createTempFile("text", ".txt");
-        FileWriter fw = new FileWriter(test);
-        fw.write("lorem ipsum");
-        fw.close();
-
-        File out = FileUtils.createZipArchive(new String[] {test.getAbsolutePath()});
-
-        return prepareFileResponse(request, out);
-    }
-
-    @PostMapping("/batch")
-    public String pack(
-            @RequestParam(name="uuidList") String uuidList,
-            @RequestParam(name="batchName") String batchName,
-            @RequestParam(name="format", defaultValue = "jp2") String format,
-            Model model) {
-        if (!ACCEPTED_FORMATS_SET.contains(format)) {
-            return null;
-        }
-
-        var ie = new ImageExtractor();
-
-        ie.batch(batchName, uuidList, format);
-
-        return "batch";
-    }
-
     @PostMapping("/")
     public ResponseEntity<Resource> downloadSingle(
             @RequestParam(name="uuid") String uuid,
@@ -92,6 +57,47 @@ public class ImagepointController {
         File archive = FileUtils.createZipArchive(imagePaths.toArray(new String[imagePaths.size()]));
 
         return prepareFileResponse(request, archive);
+    }
+
+    @GetMapping("/batch")
+    public String batchGet(Model model) {
+        return "batch/form";
+    }
+
+    @PostMapping("/batch")
+    public String pack(
+            @RequestParam(name="uuidList") String uuidList,
+            @RequestParam(name="batchName") String batchName,
+            @RequestParam(name="format", defaultValue = "jp2") String format,
+            Model model) {
+        if (!ACCEPTED_FORMATS_SET.contains(format)) {
+            return null;
+        }
+
+        var ie = new ImageExtractor();
+
+        ie.batch(batchName, uuidList, format);
+
+        return "batch/form";
+    }
+
+    @GetMapping("/batchList")
+    public String batchList(Model model) {
+        model.addAttribute("batchList", ImageExtractor.listBatches());
+        return "batch/list";
+    }
+
+    @GetMapping("/demo")
+    public ResponseEntity<Resource> demo(HttpServletRequest request) throws IOException {
+
+        File test = File.createTempFile("text", ".txt");
+        FileWriter fw = new FileWriter(test);
+        fw.write("lorem ipsum");
+        fw.close();
+
+        File out = FileUtils.createZipArchive(new String[] {test.getAbsolutePath()});
+
+        return prepareFileResponse(request, out);
     }
 
     private ResponseEntity<Resource> prepareFileResponse(HttpServletRequest request, File responseFile) throws MalformedURLException {

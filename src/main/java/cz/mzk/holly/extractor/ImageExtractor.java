@@ -3,6 +3,7 @@ package cz.mzk.holly.extractor;
 import cz.mzk.holly.DocumentUtils;
 import cz.mzk.holly.FileUtils;
 import cz.mzk.holly.fedora.FedoraRESTConnector;
+import cz.mzk.holly.model.Batch;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -67,6 +68,12 @@ public class ImageExtractor {
         BASE_PATH_MZK = mzk;
         BASE_PATH_NDK = ndk;
         PACK_PATH = new File(packPath).toPath();
+    }
+
+    public static List<Batch> listBatches() {
+        Batch b = new Batch("testName", "testStatus");
+
+        return Collections.singletonList(b);
     }
 
     public String getImagePath(String uuid) {

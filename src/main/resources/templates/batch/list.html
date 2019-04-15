@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{base}">
+
+<div layout:fragment="page_content" id="page_content">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>
+                    Jméno
+                </th>
+                <th>
+                    Stav
+                </th>
+                <th></th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="batch: ${batchList}">
+                <td th:text="${batch.name}" />
+                <td th:text="${batch.status}" />
+                <td>
+                    <form method="post">
+                        <input type="hidden" name="name" th:value="${batch.name}">
+                        <button type="submit" class="btn btn-primary">Stáhnout</button>
+                    </form>
+                </td>
+                <td>
+                    <form method="delete">
+                        <input type="hidden" name="name" th:value="${batch.name}">
+                        <button type="submit" class="btn btn-secondary">Smazat</button>
+                    </form>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+</div>
