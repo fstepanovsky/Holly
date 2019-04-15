@@ -23,7 +23,7 @@
                 <td th:text="${batch.name}" />
                 <td th:text="${batch.status}" />
                 <td>
-                    <form method="post">
+                    <form method="post" th:if="${batch.status == 'ok'}">
                         <input type="hidden" name="name" th:value="${batch.name}">
                         <button type="submit" class="btn btn-primary">Stáhnout</button>
                     </form>
