@@ -83,7 +83,7 @@ public class ImagepointController {
 
     @GetMapping("/batchList")
     public String batchList(Model model) {
-        model.addAttribute("batchList", ImageExtractor.listBatches());
+        model.addAttribute("batchList", new ImageExtractor().listBatches());
         return "batch/list";
     }
 

@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -70,12 +71,45 @@ public class ImageExtractor {
         PACK_PATH = new File(packPath).toPath();
     }
 
-    public static List<Batch> listBatches() {
-        Batch b = new Batch("testName", "testStatus");
+    /**
+     * Lists all batches present in PACK_PATH with their status
+     *
+     * @return batchlist in PACK_PATH
+     */
+    public List<Batch> listBatches() {
+        var files = PACK_PATH.toFile().listFiles();
+        var batches = new LinkedList<Batch>();
 
-        return Collections.singletonList(b);
+        for (File f : files) {
+            if (!f.isFile() || !f.getName().contains(".zip")) {
+                continue;
+            }
+
+            if (f.getName().endsWith(".zip")) {
+                batches.add(new Batch(f.getName(), "ok"));
+            } else {
+                String status;
+
+                try {
+                    status = Files.readAllLines(f.toPath()).get(0);
+                } catch (IOException e) {
+                    logger.severe("Could not read status file. Reason: " + e.getMessage());
+                    status = "unknown";
+                }
+
+                batches.add(new Batch(f.getName(), status));
+            }
+        }
+
+        return batches;
     }
 
+    /**
+     * Loads path on imageserver for specified uuid
+     *
+     * @param uuid uuid of object containing image datastreams
+     * @return path on imageserver if object contains an imagelink, null otherwise
+     */
     public String getImagePath(String uuid) {
         String imageUrl;
         try {
@@ -84,9 +118,8 @@ public class ImageExtractor {
                 imageUrl = fedora.getImgAddressFromRels(uuid, false);
             else
                 return "";
-
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.severe("Could not load information from RELS-EXT. Reason: " + e.getMessage());
             return null;
         }
 
