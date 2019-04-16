@@ -4,6 +4,7 @@ import cz.mzk.holly.DocumentUtils;
 import cz.mzk.holly.FileUtils;
 import cz.mzk.holly.fedora.FedoraRESTConnector;
 import cz.mzk.holly.model.Batch;
+import cz.mzk.holly.model.TreeNode;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -13,12 +14,9 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -131,60 +129,55 @@ public class ImageExtractor {
     }
 
     /**
-     * Loads list of paths for a given object
+     * Processes supplied tree object, filling its information about structure and pages
      *
-     * @param uuid parent object
-     * @return list of paths
+     * @param tree tree to be processed
+     * @param from page start limit
+     * @param to page end limit
+     * @throws IOException
+     * @throws ParserConfigurationException
+     * @throws SAXException
      */
-    public List<String> getImagePaths(String uuid, Integer fromPage, Integer toPage) {
-        List<String> pages;
-        try {
-            pages = getPagesUuids(uuid, fromPage, toPage);
-        } catch (IOException | ParserConfigurationException | SAXException e) {
-            logger.severe(e.getMessage());
-            return null;
-        }
+    public void processTree(TreeNode tree, Integer from, Integer to) throws IOException, ParserConfigurationException, SAXException {
 
-        if (pages.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<String>paths = new ArrayList<>();
-        for (String page : pages) {
-            String path = getImagePath(page);
-            if (page != null && !path.isEmpty()) {
-                paths.add(path);
-            }
-        }
-
-        return paths;
-    }
-
-    public List<String> getPagesUuids(String uuid, Integer from, Integer to) throws IOException, ParserConfigurationException, SAXException {
-        if (!hasUuidPrefix(uuid)) {
-            throw new IllegalArgumentException("Invalid UUID: " + (uuid == null ? "null" : uuid));
-        }
-
-        List<String> model = getFedoraRDFResourceFromRels(uuid, "fedora-model:hasModel");
+        List<String> model = getFedoraRDFResourceFromRels(tree.getName(), "fedora-model:hasModel");
 
         if (model.size() != 1) {
-            model = getFedoraRDFResourceFromRels(uuid, "hasModel");
+            model = getFedoraRDFResourceFromRels(tree.getName(), "hasModel");
 
             if (model.size() != 1) {
-                throw new IllegalStateException("Could not load model from RELS-EXT for uuid: " + uuid);
+                throw new IllegalStateException("Could not load model from RELS-EXT for uuid: " + tree.getName());
             }
         }
 
+        List<String> pageUuids = null;
+
         switch (model.get(0)) {
+            //for hierarchical models process their structure
+            case "model:periodical":
+                var volumeUuids = getUUIDsFromRelsExt(tree, "kramerius:hasVolume");
+
+                for (String volumeUuid : volumeUuids) {
+                    var subTree = tree.createSubTree(volumeUuid);
+                    processTree(subTree, from, to);
+                }
+
+                break;
+            case "model:periodicalvolume":
+                var itemUuids = getUUIDsFromRelsExt(tree, "kramerius:hasItem");
+
+                for (String itemUuid : itemUuids) {
+                    var subTree = tree.createSubTree(itemUuid);
+                    processTree(subTree, from, to);
+                }
+
+                break;
+            //for page models get list of pages
             //TODO: add all models that can contain relation "hasPage"
             case "model:monograph":
             case "model:map":
             case "model:periodicalitem":
-                List<String> pageUuids = getFedoraRDFResourceFromRels(uuid, "kramerius:hasPage");
-
-                //attempt to load resources if prefix is not present
-                if (pageUuids.isEmpty()) {
-                    pageUuids = getFedoraRDFResourceFromRels(uuid, "hasPage");
-                }
+                pageUuids = getUUIDsFromRelsExt(tree, "kramerius:hasPage");
 
                 //filter range
                 if (from != null || to != null) {
@@ -195,16 +188,37 @@ public class ImageExtractor {
 
                 //TODO: process attachments
 
-                return pageUuids;
+                break;
             case "model:page":
-                return Collections.singletonList(uuid);
+                pageUuids = Collections.singletonList(tree.getName());
+                break;
             default:
                 //recursive loading is unsafe - f.e.: export entire periodical
                 //JK: recursive search is safe, blocking should be done when pages are countable, e.g. 1000 page limit
                 System.err.println("Supplied UUID does not contain pages and recursive search is not allowed");
 
-                return null;
+                return;
         }
+
+        //get page paths and store them to tree
+        if (pageUuids != null) {
+            for (String page : pageUuids) {
+                String path = getImagePath(page);
+                if (page != null && !path.isEmpty()) {
+                    tree.addPagePath(path);
+                }
+            }
+        }
+    }
+
+    private List<String> getUUIDsFromRelsExt(TreeNode tree, String elementTag) throws IOException, ParserConfigurationException, SAXException {
+        List<String> pageUuids = getFedoraRDFResourceFromRels(tree.getName(), elementTag);
+
+        //attempt to load resources if prefix is not present
+        if (pageUuids.isEmpty() && elementTag.contains(":")) {
+            pageUuids = getFedoraRDFResourceFromRels(tree.getName(), elementTag.substring(elementTag.indexOf(":")));
+        }
+        return pageUuids;
     }
 
     private String getPhysicalPath(String imgUrl) {
@@ -368,7 +382,7 @@ public class ImageExtractor {
         @Override
         public void run() {
             var es = Executors.newFixedThreadPool(4);
-            var map = new ConcurrentHashMap<String, List<String>>();
+            var root = new TreeNode(true, "");
 
             try {
                 if (uuidListStr == null || uuidListStr.isEmpty()) {
@@ -393,7 +407,7 @@ public class ImageExtractor {
                         return;
                     }
 
-                    es.submit(new TitleProcessor(uuid, map, fromPage, toPage));
+                    es.submit(new TitleProcessor(uuid, root, fromPage, toPage));
                 }
             } finally {
                 es.shutdown();
@@ -406,7 +420,7 @@ public class ImageExtractor {
                 return;
             }
 
-            if (map.isEmpty()) {
+            if (root.getSubTree().isEmpty() && root.getPagePaths().isEmpty()) {
                 logger.warning("No images found.");
                 createReportFile(zipFile.getName(), "No images found.");
                 return;
@@ -414,7 +428,7 @@ public class ImageExtractor {
 
             //map ready
             try {
-                FileUtils.createZipArchive(zipFile, map);
+                FileUtils.createZipArchive(zipFile, root);
             } catch (IOException e) {
                 logger.severe(e.getMessage());
                 createReportFile(zipFile.getName(), "Could not create zip archive.");
@@ -425,22 +439,30 @@ public class ImageExtractor {
 
     class TitleProcessor implements Runnable {
         private String uuid;
-        private Map<String, List<String>> map;
+        private TreeNode root;
         private Integer fromPage;
         private Integer toPage;
 
-        public TitleProcessor(String uuid, Map<String, List<String>> map, Integer fromPage, Integer toPage) {
+        public TitleProcessor(String uuid, TreeNode root, Integer fromPage, Integer toPage) {
             this.uuid = uuid;
-            this.map = map;
+            this.root = root;
             this.fromPage = fromPage;
             this.toPage = toPage;
         }
 
         @Override
         public void run() {
-            var imagePaths = getImagePaths(uuid, fromPage, toPage);
+            if (!hasUuidPrefix(uuid)) {
+                throw new IllegalArgumentException("Invalid UUID: " + (uuid == null ? "null" : uuid));
+            }
 
-            map.put(uuid, imagePaths);
+            var subTree = root.createSubTree(uuid);
+
+            try {
+                processTree(subTree, fromPage, toPage);
+            } catch (IOException | ParserConfigurationException | SAXException e) {
+                logger.severe("Processing tree: " + subTree.getName() + " failed. Reason: " + e.getMessage());
+            }
         }
     }
 }
