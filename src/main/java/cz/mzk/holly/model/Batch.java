@@ -8,10 +8,12 @@ import java.io.Serializable;
 public class Batch implements Serializable {
     private String name;
     private String status;
+    private String fileSize;
 
-    public Batch(String name, String status) {
+    public Batch(String name, String status, String fileSize) {
         this.name = name;
         this.status = status;
+        this.fileSize = fileSize;
     }
 
     public String getName() {
@@ -20,5 +22,9 @@ public class Batch implements Serializable {
 
     public String getStatus() {
         return status;
+    }
+
+    public String getFileSize() {
+        return fileSize;
     }
 }

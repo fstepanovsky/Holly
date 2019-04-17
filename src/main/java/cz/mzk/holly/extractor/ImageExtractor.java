@@ -88,7 +88,7 @@ public class ImageExtractor {
             }
 
             if (f.getName().endsWith(".zip")) {
-                batches.add(new Batch(f.getName(), "ok"));
+                batches.add(new Batch(f.getName(), "ok", FileUtils.humanReadableByteCount(f.length(), true)));
             } else {
                 String status;
 
@@ -99,7 +99,7 @@ public class ImageExtractor {
                     status = "unknown";
                 }
 
-                batches.add(new Batch(f.getName(), status));
+                batches.add(new Batch(f.getName(), status, FileUtils.humanReadableByteCount(f.length(), true)));
             }
         }
 
