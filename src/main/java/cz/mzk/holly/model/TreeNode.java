@@ -2,9 +2,9 @@ package cz.mzk.holly.model;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -15,7 +15,7 @@ public class TreeNode {
     private final String name;
 
     private final Map<String, TreeNode> subObjects;
-    private final List<String> pagePaths = new LinkedList<>();
+    private final Set<String> pagePaths = new LinkedHashSet<>();
 
     public TreeNode(boolean parallel, String name) {
         this.name = name;
@@ -43,8 +43,8 @@ public class TreeNode {
         pagePaths.add(page);
     }
 
-    public List<String> getPagePaths() {
-        return Collections.unmodifiableList(pagePaths);
+    public Set<String> getPagePaths() {
+        return Collections.unmodifiableSet(pagePaths);
     }
 
     public String getName() {

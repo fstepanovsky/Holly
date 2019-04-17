@@ -44,7 +44,7 @@ public class ImageExtractor {
             BASE_PATH_MZK = "test";
             BASE_PATH_NDK = "test";
 
-            PACK_PATH = new File("test").toPath();
+            PACK_PATH = new File("out").toPath();
 
             return;
         }
@@ -216,7 +216,7 @@ public class ImageExtractor {
 
         //attempt to load resources if prefix is not present
         if (pageUuids.isEmpty() && elementTag.contains(":")) {
-            pageUuids = getFedoraRDFResourceFromRels(tree.getName(), elementTag.substring(elementTag.indexOf(":")));
+            pageUuids = getFedoraRDFResourceFromRels(tree.getName(), elementTag.substring(elementTag.indexOf(":") + 1));
         }
         return pageUuids;
     }
@@ -384,6 +384,8 @@ public class ImageExtractor {
             var es = Executors.newFixedThreadPool(4);
             var root = new TreeNode(true, "");
 
+            //change zipFile name with appropriate suffix
+
             try {
                 if (uuidListStr == null || uuidListStr.isEmpty()) {
                     logger.info("No uuid set in the list");
@@ -432,8 +434,11 @@ public class ImageExtractor {
             } catch (IOException e) {
                 logger.severe(e.getMessage());
                 createReportFile(zipFile.getName(), "Could not create zip archive.");
+                zipFile.delete();
                 return;
             }
+
+            //TODO: rename so the status can be resolved correctly
         }
     }
 
