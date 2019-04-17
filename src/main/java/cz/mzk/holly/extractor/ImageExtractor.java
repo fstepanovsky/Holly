@@ -19,6 +19,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.Element;
@@ -30,14 +31,18 @@ public class ImageExtractor {
     private static final Logger logger = Logger.getLogger(ImageExtractor.class.getName());
 
     private static final boolean DEBUG = false;
-    private static final String STATUS_SUFFIX = ".txt";
-    private static final String TEMP_SUFFIX = "_";
+    private static final String STATUS_SUFFIX = "_e";
+    private static final String PACKING_SUFFIX = "_p";
+    private static final String SEARCH_SUFFIX = "_s";
+    private static final int PAGE_LIMIT = 2000;
 
     private final String BASE_PATH_MZK;
     private final String BASE_PATH_NDK;
     private final Path PACK_PATH;
 
     private final FedoraRESTConnector fedora = new FedoraRESTConnector();
+
+    private final AtomicInteger counter = new AtomicInteger(0);
 
     public ImageExtractor() {
         if (DEBUG) {
@@ -91,19 +96,23 @@ public class ImageExtractor {
 
             if (f.getName().toLowerCase().endsWith(".zip")) {
                 batches.add(new Batch(f.getName(), "ok", FileUtils.humanReadableByteCount(f.length(), true)));
-            } else if (f.getName().toLowerCase().endsWith(".zip" + TEMP_SUFFIX)) {
-                batches.add(new Batch(f.getName(), "processing", FileUtils.humanReadableByteCount(f.length(), true)));
+            } else if (f.getName().toLowerCase().endsWith(".zip" + PACKING_SUFFIX)) {
+                batches.add(new Batch(f.getName(), "packing", FileUtils.humanReadableByteCount(f.length(), true)));
+            } else if (f.getName().toLowerCase().endsWith(".zip" + SEARCH_SUFFIX)) {
+                batches.add(new Batch(f.getName(), "searching", "-"));
             } else {
                 String status;
 
                 try {
-                    status = Files.readAllLines(f.toPath()).get(0);
+                    var lines = Files.readAllLines(f.toPath());
+
+                    status = lines.size() != 0 ? Files.readAllLines(f.toPath()).get(0) : "nok";
                 } catch (IOException e) {
                     logger.severe("Could not read status file. Reason: " + e.getMessage());
                     status = "unknown";
                 }
 
-                batches.add(new Batch(f.getName(), status, FileUtils.humanReadableByteCount(f.length(), true)));
+                batches.add(new Batch(f.getName(), status, "-"));
             }
         }
 
@@ -118,6 +127,7 @@ public class ImageExtractor {
      */
     public String getImagePath(String uuid) {
         String imageUrl;
+
         try {
             if (hasUuidPrefix(uuid))
                 //cannot check existance
@@ -133,7 +143,9 @@ public class ImageExtractor {
     }
 
     /**
-     * Processes supplied tree object, filling its information about structure and pages
+     * Processes supplied tree object, filling its information about structure and pages.
+     *
+     * Tree is not being processed if counter is over PAGE_LIMIT
      *
      * @param tree tree to be processed
      * @param from page start limit
@@ -144,7 +156,12 @@ public class ImageExtractor {
      */
     public void processTree(TreeNode tree, Integer from, Integer to) throws IOException, ParserConfigurationException, SAXException {
 
-        List<String> model = getFedoraRDFResourceFromRels(tree.getName(), "fedora-model:hasModel");
+        if (counter.get() > PAGE_LIMIT) {
+            logger.info("Skipping tree processing. Passed page limit.");
+            return;
+        }
+
+        var model = getFedoraRDFResourceFromRels(tree.getName(), "fedora-model:hasModel");
 
         if (model.size() != 1) {
             model = getFedoraRDFResourceFromRels(tree.getName(), "hasModel");
@@ -210,13 +227,15 @@ public class ImageExtractor {
                 String path = getImagePath(page);
                 if (page != null && !path.isEmpty()) {
                     tree.addPagePath(path);
+                    //TODO: counter
+                    counter.addAndGet(1);
                 }
             }
         }
     }
 
     private List<String> getUUIDsFromRelsExt(TreeNode tree, String elementTag) throws IOException, ParserConfigurationException, SAXException {
-        List<String> pageUuids = getFedoraRDFResourceFromRels(tree.getName(), elementTag);
+        var pageUuids = getFedoraRDFResourceFromRels(tree.getName(), elementTag);
 
         //attempt to load resources if prefix is not present
         if (pageUuids.isEmpty() && elementTag.contains(":")) {
@@ -310,9 +329,7 @@ public class ImageExtractor {
             return;
         }
 
-        //TODO .txt files with prefix
-
-        File zipFile = PACK_PATH.resolve(name + (name.toLowerCase().endsWith(".zip") ? "" : ".zip")).toFile();
+        var zipFile = PACK_PATH.resolve(name + (name.toLowerCase().endsWith(".zip") ? "" : ".zip")).toFile();
 
         if (batchExists(zipFile)) {
             throw new IllegalArgumentException("File: " + name + " already exists");
@@ -330,10 +347,14 @@ public class ImageExtractor {
     private boolean batchExists(File zipFile) {
 
         var parentPath = zipFile.toPath().getParent();
-        var statusFile = parentPath.resolve(zipFile.getName() + STATUS_SUFFIX).toFile();
-        var tempFile = parentPath.resolve(zipFile.getName() + TEMP_SUFFIX).toFile();
+        var fileList = new LinkedList<File>();
 
-        return zipFile.exists() || statusFile.exists() || tempFile.exists();
+        Collections.addAll(fileList,
+                parentPath.resolve(zipFile.getName() + STATUS_SUFFIX).toFile(),
+                parentPath.resolve(zipFile.getName() + PACKING_SUFFIX).toFile(),
+                parentPath.resolve(zipFile.getName() + SEARCH_SUFFIX).toFile());
+
+        return fileList.stream().anyMatch(File::exists);
     }
 
     /**
@@ -402,50 +423,70 @@ public class ImageExtractor {
             var es = Executors.newFixedThreadPool(4);
             var root = new TreeNode(true, "");
 
-            //change zipFile name with appropriate suffix
-            var tempZipFile = zipFile.toPath().getParent().resolve(zipFile.getName() + TEMP_SUFFIX).toFile();
+            //create loading status file
+            var loadingFile = zipFile.toPath().getParent().resolve(zipFile.getName() + SEARCH_SUFFIX).toFile();
 
             try {
-                if (uuidListStr == null || uuidListStr.isEmpty()) {
-                    logger.info("No uuid set in the list");
-                    createReportFile(zipFile.getName(), "No uuid set in the list.");
-                    return;
-                }
+                loadingFile.createNewFile();
 
-                if (!uuidListStr.contains("\n")) {
-                    logger.info("List does not contain single EOL sign");
-                }
-
-                String[] uuids = uuidListStr.split("\n");
-
-                for (String uuid : uuids) {
-                    //strip whitespaces
-                    uuid = uuid.replaceAll("\\s+","");
-
-                    if (!hasUuidPrefix(uuid)) {
-                        createReportFile(zipFile.getName(), "Invalid uuid requested.");
-                        logger.warning("Invalid uuid: " + uuid);
+                try {
+                    if (uuidListStr == null || uuidListStr.isEmpty()) {
+                        logger.info("No uuid set in the list");
+                        createReportFile(zipFile.getName(), "No uuid set in the list.");
                         return;
                     }
 
-                    es.submit(new TitleProcessor(uuid, root, fromPage, toPage));
+                    if (!uuidListStr.contains("\n")) {
+                        logger.info("List does not contain single EOL sign");
+                    }
+
+                    String[] uuids = uuidListStr.split("\n");
+
+                    for (String uuid : uuids) {
+                        //strip whitespaces
+                        uuid = uuid.replaceAll("\\s+","");
+
+                        if (!hasUuidPrefix(uuid)) {
+                            createReportFile(zipFile.getName(), "Invalid uuid requested.");
+                            logger.warning("Invalid uuid: " + uuid);
+                            return;
+                        }
+
+                        es.submit(new TitleProcessor(uuid, root, fromPage, toPage));
+                    }
+                } finally {
+                    es.shutdown();
                 }
+
+                try {
+                    es.awaitTermination(60, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    logger.severe(e.getMessage());
+                    return;
+                }
+
+                if (counter.get() > PAGE_LIMIT) {
+                    logger.warning("Page count over limit.");
+                    createReportFile(zipFile.getName(), "Page count (" + counter.get() + ") over limit.");
+                    return;
+                }
+
+                if (root.getSubTree().isEmpty() && root.getPagePaths().isEmpty()) {
+                    logger.warning("No images found.");
+                    createReportFile(zipFile.getName(), "No images found.");
+                    return;
+                }
+            } catch (IOException e) {
+                logger.warning("Could not create status file.");
+                createReportFile(zipFile.getName(), "Could not create status file.");
             } finally {
-                es.shutdown();
+                if (loadingFile.exists()) {
+                    loadingFile.delete();
+                }
             }
 
-            try {
-                es.awaitTermination(60, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                logger.severe(e.getMessage());
-                return;
-            }
-
-            if (root.getSubTree().isEmpty() && root.getPagePaths().isEmpty()) {
-                logger.warning("No images found.");
-                createReportFile(zipFile.getName(), "No images found.");
-                return;
-            }
+            //change zipFile name with appropriate suffix
+            var tempZipFile = zipFile.toPath().getParent().resolve(zipFile.getName() + PACKING_SUFFIX).toFile();
 
             //map ready
             try {
