@@ -30,6 +30,8 @@ public class ImageExtractor {
     private static final Logger logger = Logger.getLogger(ImageExtractor.class.getName());
 
     private static final boolean DEBUG = false;
+    private static final String STATUS_SUFFIX = ".txt";
+    private static final String TEMP_SUFFIX = "_";
 
     private final String BASE_PATH_MZK;
     private final String BASE_PATH_NDK;
@@ -87,8 +89,10 @@ public class ImageExtractor {
                 continue;
             }
 
-            if (f.getName().endsWith(".zip")) {
+            if (f.getName().toLowerCase().endsWith(".zip")) {
                 batches.add(new Batch(f.getName(), "ok", FileUtils.humanReadableByteCount(f.length(), true)));
+            } else if (f.getName().toLowerCase().endsWith(".zip" + TEMP_SUFFIX)) {
+                batches.add(new Batch(f.getName(), "processing", FileUtils.humanReadableByteCount(f.length(), true)));
             } else {
                 String status;
 
@@ -310,11 +314,26 @@ public class ImageExtractor {
 
         File zipFile = PACK_PATH.resolve(name + (name.toLowerCase().endsWith(".zip") ? "" : ".zip")).toFile();
 
-        if (zipFile.exists()) {
+        if (batchExists(zipFile)) {
             throw new IllegalArgumentException("File: " + name + " already exists");
         }
 
         new Thread(new Packer(zipFile, uuidListStr, format, fromPage, toPage)).start();
+    }
+
+    /**
+     * Checks whether batch with specified name exists within any state of processing
+     *
+     * @param zipFile batch zip file
+     * @return true if batch exists in any state
+     */
+    private boolean batchExists(File zipFile) {
+
+        var parentPath = zipFile.toPath().getParent();
+        var statusFile = parentPath.resolve(zipFile.getName() + STATUS_SUFFIX).toFile();
+        var tempFile = parentPath.resolve(zipFile.getName() + TEMP_SUFFIX).toFile();
+
+        return zipFile.exists() || statusFile.exists() || tempFile.exists();
     }
 
     /**
@@ -353,8 +372,7 @@ public class ImageExtractor {
     }
 
     private void createReportFile(String name, String msg) {
-        var file = PACK_PATH.resolve(name + ".txt").toFile();
-        FileWriter fw = null;
+        var file = PACK_PATH.resolve(name + STATUS_SUFFIX).toFile();
         try {
             try (var writer = new BufferedWriter(new FileWriter(file, false))) {
                 writer.append(msg + "\n");
@@ -385,6 +403,7 @@ public class ImageExtractor {
             var root = new TreeNode(true, "");
 
             //change zipFile name with appropriate suffix
+            var tempZipFile = zipFile.toPath().getParent().resolve(zipFile.getName() + TEMP_SUFFIX).toFile();
 
             try {
                 if (uuidListStr == null || uuidListStr.isEmpty()) {
@@ -430,15 +449,15 @@ public class ImageExtractor {
 
             //map ready
             try {
-                FileUtils.createZipArchive(zipFile, root);
+                FileUtils.createZipArchive(tempZipFile, root);
             } catch (IOException e) {
                 logger.severe(e.getMessage());
                 createReportFile(zipFile.getName(), "Could not create zip archive.");
-                zipFile.delete();
+                tempZipFile.delete();
                 return;
             }
 
-            //TODO: rename so the status can be resolved correctly
+            tempZipFile.renameTo(zipFile);
         }
     }
 

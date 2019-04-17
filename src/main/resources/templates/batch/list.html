@@ -33,7 +33,7 @@
                     </form>
                 </td>
                 <td>
-                    <form action="/delete" method="post">
+                    <form action="/delete" method="post" th:if="${batch.status != 'processing'}">
                         <input type="hidden" name="name" th:value="${batch.name}">
                         <button type="submit" class="btn btn-secondary">Smazat</button>
                     </form>
