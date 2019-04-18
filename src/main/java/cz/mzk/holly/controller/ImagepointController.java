@@ -42,7 +42,7 @@ public class ImagepointController {
     }
 
     @PostMapping("/")
-    public String downloadSingle(
+    public RedirectView downloadSingle(
             @RequestParam(name = "uuid") String uuid,
             @RequestParam(name = "from", required = false) Integer fromPage,
             @RequestParam(name = "to", required = false) Integer toPage,
@@ -58,7 +58,7 @@ public class ImagepointController {
 
         ie.batch(batchName, uuid, format, fromPage, toPage);
 
-        return "index";
+        return new RedirectView("batchList");
     }
 
     @GetMapping("/batch")
@@ -67,7 +67,7 @@ public class ImagepointController {
     }
 
     @PostMapping("/batch")
-    public String pack(
+    public RedirectView pack(
             @RequestParam(name = "uuidList") String uuidList,
             @RequestParam(name = "batchName") String batchName,
             @RequestParam(name = "format", defaultValue = "jp2") String format,
@@ -80,7 +80,7 @@ public class ImagepointController {
 
         ie.batch(batchName, uuidList, format);
 
-        return "batch/form";
+        return new RedirectView("batchList");
     }
 
     @GetMapping("/batchList")

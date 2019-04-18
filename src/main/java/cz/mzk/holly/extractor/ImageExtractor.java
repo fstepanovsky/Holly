@@ -205,7 +205,7 @@ public class ImageExtractor {
                 //filter range
                 if (from != null || to != null) {
                     pageUuids = pageUuids.subList(
-                            from != null ? from : 0,
+                            from != null ? from - 1 : 0,
                             to != null ? to : 0);
                 }
 
