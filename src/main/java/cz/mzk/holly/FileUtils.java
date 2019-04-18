@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -12,6 +13,10 @@ import java.util.zip.ZipOutputStream;
  * @author kremlacek
  */
 public class FileUtils {
+
+    private static final String JP2_TO_JPG_CONVERT = System.getenv("JP2_TO_JPG_CONVERT");
+    private static final Logger logger = Logger.getLogger(FileUtils.class.getName());
+
     public static File createZipArchive(String[] srcFiles) throws IOException {
         File zipFile = File.createTempFile("download", ".zip");
 
@@ -39,32 +44,47 @@ public class FileUtils {
         return zipFile;
     }
 
-    public static File createZipArchive(File zipFile, TreeNode root) throws IOException {
+    public static File createZipArchive(File zipFile, TreeNode root, String format) throws IOException {
         FileOutputStream fos = new FileOutputStream(zipFile);
         ZipOutputStream zos = new ZipOutputStream(fos);
 
-        zipSubTree("", root, zos);
+        zipSubTree("", root, zos, format);
 
         zos.close();
 
         return zipFile;
     }
 
-    public static void zipSubTree(String path, TreeNode root, ZipOutputStream zos) throws IOException {
+    public static void zipSubTree(String path, TreeNode root, ZipOutputStream zos, String format) throws IOException {
 
         //process subtrees
         for(var entry : root.getSubTree().entrySet()) {
-            zipSubTree(path + (path.isEmpty() ? "" : File.separator) + entry.getKey(), entry.getValue(), zos);
+            zipSubTree(path + (path.isEmpty() ? "" : File.separator) + entry.getKey(), entry.getValue(), zos, format);
         }
 
         //process pages under current node
         byte[] buffer = new byte[1024];
 
         for(var page : root.getPagePaths()) {
-            File srcFile = new File(page);
-            FileInputStream fis = new FileInputStream(srcFile);
+            var formatEquals = page.toLowerCase().endsWith(format);
+            var srcFile = new File(page);
+            var name = srcFile.getName();
+            File convertedFile = null;
+
+            if (!srcFile.exists()) {
+                throw new IllegalStateException("Source file does not exist. File: " + page);
+            }
+
+            if (!formatEquals) {
+                name = name.substring(0, name.lastIndexOf(".")) + "." + format;
+                convertedFile = File.createTempFile("holly_","_" + name);
+
+                convertFile(srcFile, convertedFile);
+            }
+
+            FileInputStream fis = new FileInputStream(formatEquals ? srcFile : convertedFile);
             // begin writing a new ZIP entry, positions the stream to the start of the entry data
-            zos.putNextEntry(new ZipEntry(path + (path.isEmpty() ? "" : File.separator) + srcFile.getName()));
+            zos.putNextEntry(new ZipEntry(path + (path.isEmpty() ? "" : File.separator) + name));
             int length;
             while ((length = fis.read(buffer)) > 0) {
                 zos.write(buffer, 0, length);
@@ -72,6 +92,30 @@ public class FileUtils {
             zos.closeEntry();
             // close the InputStream
             fis.close();
+
+            if (convertedFile != null) {
+                //logger.info("Deleting: " + convertedFile.getAbsolutePath());
+                convertedFile.delete();
+            }
+        }
+    }
+
+    private static void convertFile(File srcFile, File convertedFile) throws IOException {
+        if (JP2_TO_JPG_CONVERT == null || JP2_TO_JPG_CONVERT.isEmpty()) {
+            throw new IllegalStateException("Conversion SW not set.");
+        }
+
+        var convertProcess = Runtime.getRuntime().exec(JP2_TO_JPG_CONVERT + " " + srcFile + " " + convertedFile);
+
+        try {
+            int i = convertProcess.waitFor();
+
+            if (i != 0) {
+                throw new IllegalStateException("Convert process failed with non zero return code.");
+            }
+        } catch (InterruptedException e) {
+            logger.severe("Convert process failed. Reason: " + e.getMessage());
+            throw new IllegalStateException("Convert process failed. Reason:" + e);
         }
     }
 

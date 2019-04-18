@@ -31,9 +31,11 @@ public class ImageExtractor {
     private static final Logger logger = Logger.getLogger(ImageExtractor.class.getName());
 
     private static final boolean DEBUG = false;
+
     private static final String STATUS_SUFFIX = "_e";
     private static final String PACKING_SUFFIX = "_p";
     private static final String SEARCH_SUFFIX = "_s";
+
     private static final int PAGE_LIMIT = 2000;
 
     private final String BASE_PATH_MZK;
@@ -490,8 +492,8 @@ public class ImageExtractor {
 
             //map ready
             try {
-                FileUtils.createZipArchive(tempZipFile, root);
-            } catch (IOException e) {
+                FileUtils.createZipArchive(tempZipFile, root, format);
+            } catch (IOException | IllegalStateException e) {
                 logger.severe(e.getMessage());
                 createReportFile(zipFile.getName(), "Could not create zip archive.");
                 tempZipFile.delete();

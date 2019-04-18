@@ -32,16 +32,37 @@
             <br/>
             <div class="row">
                 <div class="col">
-                    <input class="btn btn-primary" type="submit" value="Jeden dokument"
-                           onclick="window.location='/';" />
+                    <form action="/" method="get">
+                        <button
+                                type="submit"
+                                class="btn btn-primary"
+                                data-toggle="tooltip"
+                                data-placement="top"
+                                title="Zabalení obrázků jednoho objektu">
+                            Jeden dokument</button>
+                    </form>
                 </div>
                 <div class="col">
-                    <input class="btn btn-primary" type="submit" value="Více dokumentů"
-                           onclick="window.location='/batch';" />
+                    <form action="/batch" method="get">
+                        <button
+                                type="submit"
+                                class="btn btn-primary"
+                                data-toggle="tooltip"
+                                data-placement="top"
+                                title="Zabalení obrázků více různých objektů">
+                            Více dokumentů</button>
+                    </form>
                 </div>
                 <div class="col">
-                    <input class="btn btn-primary" type="submit" value="Seznam dávek"
-                           onclick="window.location='/batchList';" />
+                    <form action="/batchList" method="get">
+                        <button
+                                type="submit"
+                                class="btn btn-primary"
+                                data-toggle="tooltip"
+                                data-placement="top"
+                                title="Zobrazení archivů s obrázky">
+                            Seznam dávek</button>
+                    </form>
                 </div>
             </div>
             <br/>
