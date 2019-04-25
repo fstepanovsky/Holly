@@ -29,13 +29,17 @@
                 <td>
                     <form method="post" th:if="${batch.status == 'ok'}">
                         <input type="hidden" name="name" th:value="${batch.name}">
-                        <button type="submit" class="btn btn-primary">Stáhnout</button>
+                        <button type="submit" class="btn btn-primary" data-toggle="tooltip" data-placement="bottom" title="Stáhnout">
+                            <span class="fas fa-download"></span>
+                        </button>
                     </form>
                 </td>
                 <td>
                     <form action="/delete" method="post" th:if="${batch.status != 'processing'}">
                         <input type="hidden" name="name" th:value="${batch.name}">
-                        <button type="submit" class="btn btn-secondary">Smazat</button>
+                        <button type="submit" class="btn btn-secondary" data-toggle="tooltip" data-placement="bottom" title="Smazat">
+                            <span class="fas fa-trash"></span>
+                        </button>
                     </form>
                 </td>
             </tr>
