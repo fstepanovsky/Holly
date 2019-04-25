@@ -17,8 +17,6 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import javax.xml.parsers.ParserConfigurationException;
@@ -33,10 +31,11 @@ public class ImageExtractor {
     private static final boolean DEBUG = false;
 
     private static final String STATUS_SUFFIX = "_e";
-    private static final String PACKING_SUFFIX = "_p";
-    private static final String SEARCH_SUFFIX = "_s";
+    public static final String PACKING_SUFFIX = "_p";
+    public static final String SEARCH_SUFFIX = "_s";
+    public static final String WAITING_SUFFIX = "_w";
 
-    private static final int PAGE_LIMIT = 2000;
+    public static final int PAGE_LIMIT = 2000;
 
     private final String BASE_PATH_MZK;
     private final String BASE_PATH_NDK;
@@ -44,7 +43,7 @@ public class ImageExtractor {
 
     private final FedoraRESTConnector fedora = new FedoraRESTConnector();
 
-    private final AtomicInteger counter = new AtomicInteger(0);
+    private final AtomicInteger pageCounter = new AtomicInteger(0);
 
     public ImageExtractor() {
         if (DEBUG) {
@@ -102,6 +101,8 @@ public class ImageExtractor {
                 batches.add(new Batch(f.getName(), "packing", FileUtils.humanReadableByteCount(f.length(), true)));
             } else if (f.getName().toLowerCase().endsWith(".zip" + SEARCH_SUFFIX)) {
                 batches.add(new Batch(f.getName(), "searching", "-"));
+            } else if (f.getName().toLowerCase().endsWith(".zip" + WAITING_SUFFIX)) {
+                batches.add(new Batch(f.getName(), "waiting", "-"));
             } else {
                 String status;
 
@@ -147,7 +148,7 @@ public class ImageExtractor {
     /**
      * Processes supplied tree object, filling its information about structure and pages.
      *
-     * Tree is not being processed if counter is over PAGE_LIMIT
+     * Tree is not being processed if pageCounter is over PAGE_LIMIT
      *
      * @param tree tree to be processed
      * @param from page start limit
@@ -158,7 +159,7 @@ public class ImageExtractor {
      */
     public void processTree(TreeNode tree, Integer from, Integer to) throws IOException, ParserConfigurationException, SAXException {
 
-        if (counter.get() > PAGE_LIMIT) {
+        if (pageCounter.get() > PAGE_LIMIT) {
             logger.info("Skipping tree processing. Passed page limit.");
             return;
         }
@@ -228,9 +229,9 @@ public class ImageExtractor {
             for (String page : pageUuids) {
                 String path = getImagePath(page);
                 if (page != null && !path.isEmpty()) {
+                    //page found, add to tree increment pageCounter
                     tree.addPagePath(path);
-                    //TODO: counter
-                    counter.addAndGet(1);
+                    pageCounter.addAndGet(1);
                 }
             }
         }
@@ -288,7 +289,7 @@ public class ImageExtractor {
             return physicalPath + ".jp2";
     }
 
-    private boolean hasUuidPrefix(String uuid) {
+    public boolean hasUuidPrefix(String uuid) {
         if (uuid == null)
             return false;
 
@@ -337,7 +338,7 @@ public class ImageExtractor {
             throw new IllegalArgumentException("File: " + name + " already exists");
         }
 
-        new Thread(new Packer(zipFile, uuidListStr, format, fromPage, toPage)).start();
+        Packer.execute(this, zipFile, uuidListStr, format, fromPage, toPage);
     }
 
     /**
@@ -354,7 +355,8 @@ public class ImageExtractor {
         Collections.addAll(fileList,
                 parentPath.resolve(zipFile.getName() + STATUS_SUFFIX).toFile(),
                 parentPath.resolve(zipFile.getName() + PACKING_SUFFIX).toFile(),
-                parentPath.resolve(zipFile.getName() + SEARCH_SUFFIX).toFile());
+                parentPath.resolve(zipFile.getName() + SEARCH_SUFFIX).toFile(),
+                parentPath.resolve(zipFile.getName() + WAITING_SUFFIX).toFile());
 
         return fileList.stream().anyMatch(File::exists);
     }
@@ -394,7 +396,7 @@ public class ImageExtractor {
         batchFile.delete();
     }
 
-    private void createReportFile(String name, String msg) {
+    public void createReportFile(String name, String msg) {
         var file = PACK_PATH.resolve(name + STATUS_SUFFIX).toFile();
         try {
             try (var writer = new BufferedWriter(new FileWriter(file, false))) {
@@ -405,131 +407,8 @@ public class ImageExtractor {
         }
     }
 
-    class Packer implements Runnable {
-        private File zipFile;
-        private String uuidListStr;
-        private Integer fromPage;
-        private Integer toPage;
-        private String format;
-
-        public Packer(File zipFile, String uuidListStr, String format, Integer fromPage, Integer toPage) {
-            this.zipFile = zipFile;
-            this.uuidListStr = uuidListStr;
-            this.format = format;
-            this.fromPage = fromPage;
-            this.toPage = toPage;
-        }
-
-        @Override
-        public void run() {
-            var es = Executors.newFixedThreadPool(4);
-            var root = new TreeNode(true, "");
-
-            //create loading status file
-            var loadingFile = zipFile.toPath().getParent().resolve(zipFile.getName() + SEARCH_SUFFIX).toFile();
-
-            try {
-                loadingFile.createNewFile();
-
-                try {
-                    if (uuidListStr == null || uuidListStr.isEmpty()) {
-                        logger.info("No uuid set in the list");
-                        createReportFile(zipFile.getName(), "No uuid set in the list.");
-                        return;
-                    }
-
-                    if (!uuidListStr.contains("\n")) {
-                        logger.info("List does not contain single EOL sign");
-                    }
-
-                    String[] uuids = uuidListStr.split("\n");
-
-                    for (String uuid : uuids) {
-                        //strip whitespaces
-                        uuid = uuid.replaceAll("\\s+","");
-
-                        if (!hasUuidPrefix(uuid)) {
-                            createReportFile(zipFile.getName(), "Invalid uuid requested.");
-                            logger.warning("Invalid uuid: " + uuid);
-                            return;
-                        }
-
-                        es.submit(new TitleProcessor(uuid, root, fromPage, toPage));
-                    }
-                } finally {
-                    es.shutdown();
-                }
-
-                try {
-                    es.awaitTermination(60, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    logger.severe(e.getMessage());
-                    return;
-                }
-
-                if (counter.get() > PAGE_LIMIT) {
-                    logger.warning("Page count over limit.");
-                    createReportFile(zipFile.getName(), "Page count (" + counter.get() + ") over limit.");
-                    return;
-                }
-
-                if (root.getSubTree().isEmpty() && root.getPagePaths().isEmpty()) {
-                    logger.warning("No images found.");
-                    createReportFile(zipFile.getName(), "No images found.");
-                    return;
-                }
-            } catch (IOException e) {
-                logger.warning("Could not create status file.");
-                createReportFile(zipFile.getName(), "Could not create status file.");
-            } finally {
-                if (loadingFile.exists()) {
-                    loadingFile.delete();
-                }
-            }
-
-            //change zipFile name with appropriate suffix
-            var tempZipFile = zipFile.toPath().getParent().resolve(zipFile.getName() + PACKING_SUFFIX).toFile();
-
-            //map ready
-            try {
-                FileUtils.createZipArchive(tempZipFile, root, format);
-            } catch (IOException | IllegalStateException e) {
-                logger.severe(e.getMessage());
-                createReportFile(zipFile.getName(), "Could not create zip archive.");
-                tempZipFile.delete();
-                return;
-            }
-
-            tempZipFile.renameTo(zipFile);
-        }
+    public int getPageCounterValue() {
+        return pageCounter.get();
     }
 
-    class TitleProcessor implements Runnable {
-        private String uuid;
-        private TreeNode root;
-        private Integer fromPage;
-        private Integer toPage;
-
-        public TitleProcessor(String uuid, TreeNode root, Integer fromPage, Integer toPage) {
-            this.uuid = uuid;
-            this.root = root;
-            this.fromPage = fromPage;
-            this.toPage = toPage;
-        }
-
-        @Override
-        public void run() {
-            if (!hasUuidPrefix(uuid)) {
-                throw new IllegalArgumentException("Invalid UUID: " + (uuid == null ? "null" : uuid));
-            }
-
-            var subTree = root.createSubTree(uuid);
-
-            try {
-                processTree(subTree, fromPage, toPage);
-            } catch (IOException | ParserConfigurationException | SAXException e) {
-                logger.severe("Processing tree: " + subTree.getName() + " failed. Reason: " + e.getMessage());
-            }
-        }
-    }
 }
