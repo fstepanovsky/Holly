@@ -1,10 +1,7 @@
 package cz.mzk.holly.extractor;
 
 import cz.mzk.holly.model.TreeNode;
-import java.io.IOException;
 import java.util.logging.Logger;
-import javax.xml.parsers.ParserConfigurationException;
-import org.xml.sax.SAXException;
 
 /**
  * @author kremlacek
@@ -12,18 +9,16 @@ import org.xml.sax.SAXException;
 class TitleProcessor implements Runnable {
     private static final Logger logger = Logger.getLogger(TitleProcessor.class.getName());
 
-    private ImageExtractor imageExtractor;
-    private String uuid;
-    private TreeNode root;
-    private Integer fromPage;
-    private Integer toPage;
+    private final ImageExtractor imageExtractor;
+    private final String uuid;
+    private final TreeNode root;
+    private final Packer.Config cfg;
 
-    public TitleProcessor(ImageExtractor imageExtractor, String uuid, TreeNode root, Integer fromPage, Integer toPage) {
+    public TitleProcessor(ImageExtractor imageExtractor, String uuid, TreeNode root, Packer.Config cfg) {
         this.imageExtractor = imageExtractor;
         this.uuid = uuid;
         this.root = root;
-        this.fromPage = fromPage;
-        this.toPage = toPage;
+        this.cfg = cfg;
     }
 
     @Override
@@ -35,8 +30,8 @@ class TitleProcessor implements Runnable {
         var subTree = root.createSubTree(uuid);
 
         try {
-            imageExtractor.processTree(subTree, fromPage, toPage);
-        } catch (IOException | ParserConfigurationException | SAXException e) {
+            imageExtractor.processTree(subTree, cfg);
+        } catch (Exception e) {
             logger.severe("Processing tree: " + subTree.getName() + " failed. Reason: " + e.getMessage());
         }
     }

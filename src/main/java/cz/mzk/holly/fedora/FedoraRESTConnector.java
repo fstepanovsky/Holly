@@ -379,4 +379,26 @@ public class FedoraRESTConnector {
     public String getMods(String uuid) throws IOException {
         return loadDS(FedoraDSType.MODS, uuid, true);
     }
+
+    public String getModsFirstElement(String uuid, String elementName) throws IOException {
+        var mods = getMods(uuid);
+
+        var elementTagStart = "<" + elementName + ">";
+        var elementTagEnd = "</" + elementName + ">";
+
+        var elementTagStartNS = "<mods:" + elementName + ">";
+        var elementTagEndNS = "</mods:" + elementName + ">";
+
+        if (!mods.contains(elementTagStart) || !mods.contains(elementTagEnd)) {
+            //mods can contain elements with or without NS therefore we have to check both
+            elementTagStart = elementTagStartNS;
+            elementTagEnd = elementTagEndNS;
+
+            if (!mods.contains(elementTagStart) || !mods.contains(elementTagEnd)) {
+                throw new IllegalArgumentException("mods element " + elementName + " is not present in mods of object " + uuid);
+            }
+        }
+
+        return mods.substring(mods.indexOf(elementTagStart) + elementTagStart.length(), mods.indexOf(elementTagEnd));
+    }
 }

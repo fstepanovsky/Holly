@@ -36,8 +36,7 @@ public class ImagepointController {
     public static final Set<String> ACCEPTED_FORMATS_SET = new HashSet<>(Arrays.asList(ACCEPTED_FORMATS));
 
     @GetMapping("/")
-    public String greeting(Model model) {
-        model.addAttribute("uuid", "uuid:");
+    public String home(Model model) {
         return "index";
     }
 
@@ -105,6 +104,32 @@ public class ImagepointController {
         }
 
         return prepareFileResponse(request, zipFile);
+    }
+
+    @GetMapping("/periodical")
+    public String periodical(Model model) {
+        return "periodical";
+    }
+
+    @PostMapping("/periodical")
+    public RedirectView periodicalBatch(
+            @RequestParam(name = "uuid") String uuid,
+            @RequestParam(name = "fromYear", required = false) Integer fromYear,
+            @RequestParam(name = "toYear", required = false) Integer toYear,
+            @RequestParam(name = "fromIssue", required = false) String fromIssue,
+            @RequestParam(name = "toIssue", required = false) String toIssue,
+            @RequestParam(name = "batchName") String batchName,
+            @RequestParam(name = "format", defaultValue = "jp2") String format
+    ) {
+        if (!ACCEPTED_FORMATS_SET.contains(format)) {
+            return null;
+        }
+
+        var ie = new ImageExtractor();
+
+        ie.batchPeriodical(batchName, uuid, fromYear, toYear, fromIssue, toIssue, format);
+
+        return new RedirectView("batchList");
     }
 
     @PostMapping("/delete")

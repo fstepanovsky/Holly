@@ -22,18 +22,13 @@ public class Packer implements Runnable {
 
     private ImageExtractor imageExtractor;
     private File zipFile;
-    private String uuidListStr;
-    private Integer fromPage;
-    private Integer toPage;
-    private String format;
 
-    private Packer(ImageExtractor imageExtractor, File zipFile, String uuidListStr, String format, Integer fromPage, Integer toPage) {
+    private final Config cfg;
+
+    private Packer(ImageExtractor imageExtractor, File zipFile, Config cfg) {
         this.imageExtractor = imageExtractor;
         this.zipFile = zipFile;
-        this.uuidListStr = uuidListStr;
-        this.format = format;
-        this.fromPage = fromPage;
-        this.toPage = toPage;
+        this.cfg = cfg;
     }
 
     @Override
@@ -48,17 +43,17 @@ public class Packer implements Runnable {
             loadingFile.createNewFile();
 
             try {
-                if (uuidListStr == null || uuidListStr.isEmpty()) {
+                if (cfg.getUuidListStr() == null || cfg.getUuidListStr().isEmpty()) {
                     logger.info("No uuid set in the list");
                     imageExtractor.createReportFile(zipFile.getName(), "No uuid set in the list.");
                     return;
                 }
 
-                if (!uuidListStr.contains("\n")) {
+                if (!cfg.getUuidListStr().contains("\n")) {
                     logger.info("List does not contain single EOL sign");
                 }
 
-                String[] uuids = uuidListStr.split("\n");
+                String[] uuids = cfg.getUuidListStr().split("\n");
 
                 for (String uuid : uuids) {
                     //strip whitespaces
@@ -70,7 +65,7 @@ public class Packer implements Runnable {
                         return;
                     }
 
-                    es.submit(new TitleProcessor(imageExtractor, uuid, root, fromPage, toPage));
+                    es.submit(new TitleProcessor(imageExtractor, uuid, root, cfg));
                 }
             } finally {
                 //close executor service so that it can't accept more requests
@@ -139,7 +134,7 @@ public class Packer implements Runnable {
             var tempZipFile = createStatusFile(zipFile, ImageExtractor.PACKING_SUFFIX);
 
             try {
-                FileUtils.createZipArchive(tempZipFile, root, format);
+                FileUtils.createZipArchive(tempZipFile, root, cfg.getFormat());
             } catch (IOException | IllegalStateException e) {
                 logger.severe(e.getMessage());
                 imageExtractor.createReportFile(zipFile.getName(), "Could not create zip archive.");
@@ -160,7 +155,67 @@ public class Packer implements Runnable {
         return archiveFile.toPath().getParent().resolve(archiveFile.getName() + suffix).toFile();
     }
 
-    public static void execute(ImageExtractor imageExtractor, File zipFile, String uuidListStr, String format, Integer fromPage, Integer toPage) {
-        new Thread(new Packer(imageExtractor, zipFile, uuidListStr, format, fromPage, toPage)).start();
+    public static void execute(ImageExtractor imageExtractor, File zipFile, Config cfg) {
+        new Thread(new Packer(imageExtractor, zipFile, cfg)).start();
+    }
+
+    public static class Config {
+        private final String name;
+        private final String uuidListStr;
+        private final String format;
+        private final Integer fromPage;
+        private final Integer toPage;
+        private final Integer fromYear;
+        private final Integer toYear;
+        private final String fromIssue;
+        private final String toIssue;
+
+        public Config(String name, String uuidListStr, String format, Integer fromPage, Integer toPage, Integer fromYear, Integer toYear, String fromIssue, String toIssue) {
+            this.name = name;
+            this.uuidListStr = uuidListStr;
+            this.format = format;
+            this.fromPage = fromPage;
+            this.toPage = toPage;
+            this.fromYear = fromYear;
+            this.toYear = toYear;
+            this.fromIssue = fromIssue;
+            this.toIssue = toIssue;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getUuidListStr() {
+            return uuidListStr;
+        }
+
+        public String getFormat() {
+            return format;
+        }
+
+        public Integer getFromPage() {
+            return fromPage;
+        }
+
+        public Integer getToPage() {
+            return toPage;
+        }
+
+        public Integer getFromYear() {
+            return fromYear;
+        }
+
+        public Integer getToYear() {
+            return toYear;
+        }
+
+        public String getFromIssue() {
+            return fromIssue;
+        }
+
+        public String getToIssue() {
+            return toIssue;
+        }
     }
 }

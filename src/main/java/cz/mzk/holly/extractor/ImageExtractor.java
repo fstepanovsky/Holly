@@ -90,6 +90,10 @@ public class ImageExtractor {
         var files = PACK_PATH.toFile().listFiles();
         var batches = new LinkedList<Batch>();
 
+        if (files == null) {
+            throw new IllegalArgumentException("File listing returned null! Check PACK_PATH variable.");
+        }
+
         for (File f : files) {
             if (!f.isFile() || !f.getName().contains(".zip")) {
                 continue;
@@ -151,13 +155,12 @@ public class ImageExtractor {
      * Tree is not being processed if pageCounter is over PAGE_LIMIT
      *
      * @param tree tree to be processed
-     * @param from page start limit
-     * @param to page end limit
+     * @param cfg processing configuration
      * @throws IOException
      * @throws ParserConfigurationException
      * @throws SAXException
      */
-    public void processTree(TreeNode tree, Integer from, Integer to) throws IOException, ParserConfigurationException, SAXException {
+    public void processTree(TreeNode tree, Packer.Config cfg) throws IOException, ParserConfigurationException, SAXException {
 
         if (pageCounter.get() > PAGE_LIMIT) {
             logger.info("Skipping tree processing. Passed page limit.");
@@ -181,19 +184,17 @@ public class ImageExtractor {
             case "model:periodical":
                 var volumeUuids = getUUIDsFromRelsExt(tree, "kramerius:hasVolume");
 
-                for (String volumeUuid : volumeUuids) {
-                    var subTree = tree.createSubTree(volumeUuid);
-                    processTree(subTree, from, to);
-                }
+                //process years
+                rangeProcessTree(tree, cfg, volumeUuids, "date",
+                        cfg.getFromYear() == null ? null : cfg.getFromYear().toString(),
+                        cfg.getToYear() == null ? null : cfg.getToYear().toString());
 
                 break;
             case "model:periodicalvolume":
                 var itemUuids = getUUIDsFromRelsExt(tree, "kramerius:hasItem");
 
-                for (String itemUuid : itemUuids) {
-                    var subTree = tree.createSubTree(itemUuid);
-                    processTree(subTree, from, to);
-                }
+                //process issues
+                rangeProcessTree(tree, cfg, itemUuids, "number", cfg.getFromIssue(), cfg.getToIssue());
 
                 break;
             //for page models get list of pages
@@ -204,10 +205,10 @@ public class ImageExtractor {
                 pageUuids = getUUIDsFromRelsExt(tree, "kramerius:hasPage");
 
                 //filter range
-                if (from != null || to != null) {
+                if (cfg.getFromPage() != null || cfg.getToPage() != null) {
                     pageUuids = pageUuids.subList(
-                            from != null ? from - 1 : 0,
-                            to != null ? to : 0);
+                            cfg.getFromPage() != null ? cfg.getFromPage() - 1 : 0,
+                            cfg.getToPage() != null ? cfg.getToPage() : 0);
                 }
 
                 //TODO: process attachments
@@ -233,6 +234,60 @@ public class ImageExtractor {
                     tree.addPagePath(path);
                     pageCounter.addAndGet(1);
                 }
+            }
+        }
+    }
+
+    /**
+     * Processes list of provided uuids and if provided checks their mods value for specified element tag value within specified range
+     *
+     * @param tree parent tree node
+     * @param cfg packer configuration
+     * @param itemUuids list of uuids to be processed
+     * @param elementName name of mods element to be checked
+     * @param startValue starting value of range
+     * @param endValue ending value of range
+     * @throws IOException
+     * @throws ParserConfigurationException
+     * @throws SAXException
+     */
+    private void rangeProcessTree(
+            TreeNode tree,
+            Packer.Config cfg,
+            List<String> itemUuids,
+            String elementName,
+            String startValue,
+            String endValue
+    ) throws IOException, ParserConfigurationException, SAXException {
+        boolean reachedStartingVolume = false;
+
+        //process subitems
+        for (String itemUuid : itemUuids) {
+
+            String elementValue = null;
+
+            //check requested range start if range is specified
+            if ((startValue != null && startValue != "") || (endValue != null && startValue != "")) {
+                elementValue = fedora.getModsFirstElement(itemUuid, elementName);
+            }
+
+            if (startValue != null && startValue != "" && !reachedStartingVolume) {
+                if (elementValue.equals(startValue)) {
+                    //signal to process every following subtree because we reached requested range
+                    reachedStartingVolume = true;
+                } else {
+                    //skip processing subtree, since it is before requested range
+                    continue;
+                }
+            }
+
+            var subTree = tree.createSubTree(itemUuid);
+            processTree(subTree, cfg);
+
+            //check requested range end
+            if (endValue != null && endValue != "" && elementValue.equals(endValue)) {
+                //reached last issue, stop processing next issue
+                break;
             }
         }
     }
@@ -328,17 +383,32 @@ public class ImageExtractor {
     }
 
     public void batch(String name, String uuidListStr, String format, Integer fromPage, Integer toPage) {
-        if (uuidListStr == null || uuidListStr.isEmpty()) {
+        batch(new Packer.Config(name, uuidListStr, format, fromPage, toPage, null, null, null, null));
+    }
+
+    public void batchPeriodical(String batchName, String uuid, Integer fromYear, Integer toYear, String fromIssue, String toIssue, String format) {
+        if (!hasUuidPrefix(uuid) || uuid.contains("/n")) {
+            throw new IllegalArgumentException("Provide single valid uuid.");
+        }
+
+        //TODO: if provided uuid is periodical internal item, automatically search for root uuid and use that instead for batch process
+
+        batch(new Packer.Config(batchName, uuid, format, null, null, fromYear, toYear, fromIssue, toIssue));
+    }
+
+    public void batch(Packer.Config cfg
+    ) {
+        if (cfg.getUuidListStr() == null || cfg.getUuidListStr().isEmpty()) {
             return;
         }
 
-        var zipFile = PACK_PATH.resolve(name + (name.toLowerCase().endsWith(".zip") ? "" : ".zip")).toFile();
+        var zipFile = PACK_PATH.resolve(cfg.getName() + (cfg.getName().toLowerCase().endsWith(".zip") ? "" : ".zip")).toFile();
 
         if (batchExists(zipFile)) {
-            throw new IllegalArgumentException("File: " + name + " already exists");
+            throw new IllegalArgumentException("File: " + cfg.getName() + " already exists");
         }
 
-        Packer.execute(this, zipFile, uuidListStr, format, fromPage, toPage);
+        Packer.execute(this, zipFile, cfg);
     }
 
     /**
@@ -410,5 +480,4 @@ public class ImageExtractor {
     public int getPageCounterValue() {
         return pageCounter.get();
     }
-
 }
