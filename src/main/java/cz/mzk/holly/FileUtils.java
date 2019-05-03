@@ -25,8 +25,8 @@ public class FileUtils {
 
         byte[] buffer = new byte[1024];
 
-        for (int i=0; i < srcFiles.length; i++) {
-            File srcFile = new File(srcFiles[i]);
+        for (String srcFilePath : srcFiles) {
+            File srcFile = new File(srcFilePath);
             FileInputStream fis = new FileInputStream(srcFile);
             // begin writing a new ZIP entry, positions the stream to the start of the entry data
             zos.putNextEntry(new ZipEntry(srcFile.getName()));
@@ -44,19 +44,16 @@ public class FileUtils {
         return zipFile;
     }
 
-    public static File createZipArchive(File zipFile, TreeNode root, String format) throws IOException {
+    public static void createZipArchive(File zipFile, TreeNode root, String format) throws IOException {
         FileOutputStream fos = new FileOutputStream(zipFile);
         ZipOutputStream zos = new ZipOutputStream(fos);
 
         zipSubTree("", root, zos, format);
 
         zos.close();
-
-        return zipFile;
     }
 
-    public static void zipSubTree(String path, TreeNode root, ZipOutputStream zos, String format) throws IOException {
-
+    private static void zipSubTree(String path, TreeNode root, ZipOutputStream zos, String format) throws IOException {
         //process subtrees
         for(var entry : root.getSubTree().entrySet()) {
             zipSubTree(path + (path.isEmpty() ? "" : File.separator) + entry.getKey(), entry.getValue(), zos, format);

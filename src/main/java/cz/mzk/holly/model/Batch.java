@@ -6,9 +6,9 @@ import java.io.Serializable;
  * @author kremlacek
  */
 public class Batch implements Serializable {
-    private String name;
-    private String status;
-    private String fileSize;
+    private final String name;
+    private final String status;
+    private final String fileSize;
 
     public Batch(String name, String status, String fileSize) {
         this.name = name;

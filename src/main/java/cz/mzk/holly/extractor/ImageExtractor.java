@@ -75,12 +75,6 @@ public class ImageExtractor {
         PACK_PATH = new File(System.getenv("BATCH_PATH")).toPath();
     }
 
-    public ImageExtractor(String mzk, String ndk, String packPath) {
-        BASE_PATH_MZK = mzk;
-        BASE_PATH_NDK = ndk;
-        PACK_PATH = new File(packPath).toPath();
-    }
-
     /**
      * Lists all batches present in PACK_PATH with their status
      *
@@ -132,7 +126,7 @@ public class ImageExtractor {
      * @param uuid uuid of object containing image datastreams
      * @return path on imageserver if object contains an imagelink, null otherwise
      */
-    public String getImagePath(String uuid) {
+    private String getImagePath(String uuid) {
         String imageUrl;
 
         try {
@@ -267,11 +261,11 @@ public class ImageExtractor {
             String elementValue = null;
 
             //check requested range start if range is specified
-            if ((startValue != null && startValue != "") || (endValue != null && startValue != "")) {
+            if ((startValue != null && !startValue.equals("")) || (endValue != null && !startValue.equals(""))) {
                 elementValue = fedora.getModsFirstElement(itemUuid, elementName);
             }
 
-            if (startValue != null && startValue != "" && !reachedStartingVolume) {
+            if (startValue != null && !startValue.equals("") && !reachedStartingVolume) {
                 if (elementValue.equals(startValue)) {
                     //signal to process every following subtree because we reached requested range
                     reachedStartingVolume = true;
@@ -285,7 +279,7 @@ public class ImageExtractor {
             processTree(subTree, cfg);
 
             //check requested range end
-            if (endValue != null && endValue != "" && elementValue.equals(endValue)) {
+            if (endValue != null && !endValue.equals("") && elementValue.equals(endValue)) {
                 //reached last issue, stop processing next issue
                 break;
             }
@@ -396,8 +390,7 @@ public class ImageExtractor {
         batch(new Packer.Config(batchName, uuid, format, null, null, fromYear, toYear, fromIssue, toIssue));
     }
 
-    public void batch(Packer.Config cfg
-    ) {
+    private void batch(Packer.Config cfg) {
         if (cfg.getUuidListStr() == null || cfg.getUuidListStr().isEmpty()) {
             return;
         }

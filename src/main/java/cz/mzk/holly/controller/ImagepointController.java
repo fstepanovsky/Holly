@@ -32,8 +32,8 @@ public class ImagepointController {
 
     private static final Logger logger = Logger.getLogger(ImagepointController.class.getName());
 
-    public static final String[] ACCEPTED_FORMATS = {"jpg", "jp2", "tiff"};
-    public static final Set<String> ACCEPTED_FORMATS_SET = new HashSet<>(Arrays.asList(ACCEPTED_FORMATS));
+    private static final String[] ACCEPTED_FORMATS = {"jpg", "jp2", "tiff"};
+    private static final Set<String> ACCEPTED_FORMATS_SET = new HashSet<>(Arrays.asList(ACCEPTED_FORMATS));
 
     @GetMapping("/")
     public String home(Model model) {

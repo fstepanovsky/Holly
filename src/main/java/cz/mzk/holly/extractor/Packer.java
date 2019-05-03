@@ -14,14 +14,14 @@ import java.util.logging.Logger;
  */
 public class Packer implements Runnable {
 
-    public static final int PACKER_THREAD_LIMIT = 2;
-    public static final int HIERARCHY_CRAWLER_TIME_LIMIT = 60;
+    private static final int PACKER_THREAD_LIMIT = 2;
+    private static final int HIERARCHY_CRAWLER_TIME_LIMIT = 60;
 
     private static final Logger logger = Logger.getLogger(Packer.class.getName());
     private static final Semaphore packerSemaphore = new Semaphore(PACKER_THREAD_LIMIT);
 
-    private ImageExtractor imageExtractor;
-    private File zipFile;
+    private final ImageExtractor imageExtractor;
+    private final File zipFile;
 
     private final Config cfg;
 
