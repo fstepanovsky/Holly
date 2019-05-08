@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{base}">
+
+<div layout:fragment="page_content" id="page_content">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>
+                    Jméno
+                </th>
+                <th>
+                    Stav
+                </th>
+                <th>
+                    Velikost
+                </th>
+                <th></th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="batch: ${batchList}">
+                <td th:text="${batch.name}" />
+                <td th:text="${batch.status}" />
+                <td th:text="${batch.fileSize}" />
+                <td>
+                    <form method="post" th:if="${batch.status == 'ok'}">
+                        <input type="hidden" name="name" th:value="${batch.name}">
+                        <button type="submit" class="btn btn-primary" data-toggle="tooltip" data-placement="bottom" title="Stáhnout">
+                            <span class="fas fa-download"></span>
+                        </button>
+                    </form>
+                </td>
+                <td>
+                    <form action="/delete" method="post" th:if="${batch.status != 'processing'}">
+                        <input type="hidden" name="name" th:value="${batch.name}">
+                        <button type="submit" class="btn btn-secondary" data-toggle="tooltip" data-placement="bottom" title="Smazat">
+                            <span class="fas fa-trash"></span>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+</div>

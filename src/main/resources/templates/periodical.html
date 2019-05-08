@@ -7,24 +7,40 @@
 <div layout:fragment="page_content" id="page_content">
     <form method="post" class="form-horizontal">
         <div class="form-group">
-            <label for="uuid">UUID</label>
+            <label for="uuid">UUID periodika</label>
             <div>
-                <input id="uuid" name="uuid" type="text" placeholder="" class="form-control input-md" data-toggle="tooltip" data-placement="right" required="" title="uuid dokumentu" th:value="${uuid}">
+                <input id="uuid" name="uuid" type="text" placeholder="" class="form-control input-md" data-toggle="tooltip" data-placement="right" required="" title="uuid rodičovského objektu celého periodika" th:value="${uuid}">
             </div>
         </div>
 
-        <label for="from">Rozsah stran</label>
+        <label for="fromYear">Ročník</label>
 
         <div class="form-row">
             <div class="form-group col-md">
                 <div>
-                    <input class="input-md form-control" id="from" name="from" type="number" placeholder="od" data-toggle="tooltip" title="pro úplný rozsah ponechte prázdné" th:value="${from}">
+                    <input class="input-md form-control" id="fromYear" name="fromYear" type="number" placeholder="od" data-toggle="tooltip" title="pro úplný rozsah ponechte prázdné" th:value="${from}">
                 </div>
             </div>
 
             <div class="form-group col-md">
                 <div>
-                    <input class="input-md form-control" id="to" name="to" type="number" placeholder="do" data-toggle="tooltip" title="pro úplný rozsah ponechte prázdné" th:value="${to}">
+                    <input class="input-md form-control" id="toYear" name="toYear" type="number" placeholder="do" data-toggle="tooltip" title="pro úplný rozsah ponechte prázdné" th:value="${to}">
+                </div>
+            </div>
+        </div>
+
+        <label for="fromIssue">Číslo</label>
+
+        <div class="form-row">
+            <div class="form-group col-md">
+                <div>
+                    <input class="input-md form-control" id="fromIssue" name="fromIssue" placeholder="od" data-toggle="tooltip" title="absolutní název čísla včetně doprovodných znaků (např. 26* pro LN), pro úplný rozsah ponechte prázdné" th:value="${from}">
+                </div>
+            </div>
+
+            <div class="form-group col-md">
+                <div>
+                    <input class="input-md form-control" id="toIssue" name="toIssue" placeholder="do" data-toggle="tooltip" title="absolutní název čísla včetně doprovodných znaků (např. 27* pro LN), pro úplný rozsah ponechte prázdné" th:value="${to}">
                 </div>
             </div>
         </div>

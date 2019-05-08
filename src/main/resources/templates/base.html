@@ -1,0 +1,99 @@
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <title>Imageserver downloader</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
+
+
+    <style>
+        .Absolute-Center {
+          margin: auto;
+          position: absolute;
+          top: 0; left: 0; bottom: 0; right: 0;
+        }
+
+        .Absolute-Center.is-Responsive {
+          width: 50%;
+          height: 50%;
+          min-width: 300px;
+          max-width: 800px;
+          padding: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="row">
+        <div class="Absolute-Center is-Responsive">
+            <h3>Imageserver downloader</h3>
+            <br/>
+            <div class="row">
+                <div class="col">
+                    <form action="/" method="get">
+                        <button
+                                type="submit"
+                                class="btn btn-primary"
+                                data-toggle="tooltip"
+                                data-placement="top"
+                                title="Zabalení obrázků jednoho objektu">
+                            Jeden dokument</button>
+                    </form>
+                </div>
+                <div class="col">
+                    <form action="/batch" method="get">
+                        <button
+                                type="submit"
+                                class="btn btn-primary"
+                                data-toggle="tooltip"
+                                data-placement="top"
+                                title="Zabalení obrázků více různých objektů">
+                            Více dokumentů</button>
+                    </form>
+                </div>
+                <div class="col">
+                    <form action="/periodical" method="get">
+                        <button
+                                type="submit"
+                                class="btn btn-primary"
+                                data-toggle="tooltip"
+                                data-placement="top"
+                                title="Zabalení obrázků jednoho periodika">
+                            Periodikum</button>
+                    </form>
+                </div>
+                <div class="col">
+                    <form action="/batchList" method="get">
+                        <button
+                                type="submit"
+                                class="btn btn-primary"
+                                data-toggle="tooltip"
+                                data-placement="top"
+                                title="Zobrazení archivů s obrázky">
+                            Seznam dávek</button>
+                    </form>
+                </div>
+            </div>
+            <br/>
+            <div class="container">
+                <div class="content">
+                    <div layout:fragment="page_content"></div>
+                </div>
+            </div>
+            <i class="fas fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Nástroj pro stahování obrázků z Imageserveru.
+---------------------------------------------
+Nástroj používá pro číslování stránek jejich pořadí v dokumentu, nikoli jejich textové označení.
+Počet vygenerovaných stránek je omezen na 2000.
+Nástroj smí v jeden moment připravovat pouze 2 dávky, další jsou zařazeny do fronty a čekají.
+">
+            </i>
+        </div>
+    </div>
+</body>
+</html>
