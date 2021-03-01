@@ -56,7 +56,7 @@ public class FileUtils {
     private static void zipSubTree(String path, TreeNode root, ZipOutputStream zos, String format) throws IOException {
         //process subtrees
         for(var entry : root.getSubTree().entrySet()) {
-            zipSubTree(path + (path.isEmpty() ? "" : File.separator) + entry.getKey(), entry.getValue(), zos, format);
+            zipSubTree(path + (path.isEmpty() ? "" : File.separator) /*+ entry.getKey()*/, entry.getValue(), zos, format);
         }
 
         //process pages under current node
@@ -81,7 +81,7 @@ public class FileUtils {
 
             FileInputStream fis = new FileInputStream(formatEquals ? srcFile : convertedFile);
             // begin writing a new ZIP entry, positions the stream to the start of the entry data
-            zos.putNextEntry(new ZipEntry(path + (path.isEmpty() ? "" : File.separator) + name));
+            zos.putNextEntry(new ZipEntry(/* path + (path.isEmpty() ? "" : File.separator) + */ name));
             int length;
             while ((length = fis.read(buffer)) > 0) {
                 zos.write(buffer, 0, length);
