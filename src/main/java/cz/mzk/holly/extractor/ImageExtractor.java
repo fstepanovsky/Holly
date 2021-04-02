@@ -326,6 +326,12 @@ public class ImageExtractor {
                 case "2019":
                     physicalPath = path.replace("NDK", "ndk2019");
                     break;
+                case "2020":
+                    physicalPath = path.replace("NDK", "ndk2020");
+                    break;
+                case "2021":
+                    physicalPath = path.replace("NDK", "ndk2021");
+                    break;
             }
             physicalPath = Paths.get(BASE_PATH_NDK, physicalPath).toString();
         } else {

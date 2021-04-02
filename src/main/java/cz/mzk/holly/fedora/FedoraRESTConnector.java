@@ -30,7 +30,7 @@ public class FedoraRESTConnector {
         }
     }
 
-    private static final String FEDORA_ADDRESS = "http://fedora.dk-back.infra.mzk.cz/fedora";
+    private static final String FEDORA_ADDRESS = "http://dk-fedora.infra.mzk.cz/fedora";
     private static final String FEDORA_DS_FSTRING = "/objects/%s/datastreams/%s";
 
     private static final String USER  = System.getenv("FEDORA_USER");
